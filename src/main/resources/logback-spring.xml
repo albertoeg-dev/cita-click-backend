@@ -17,9 +17,9 @@
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:--} | %-30.30X{userId:-anon}] %-40.40logger{40} - %msg%n"/>
 
     <!-- ================================================================
-         DESARROLLO (perfil por defecto y local)
+         DESARROLLO (solo local — con archivo de log)
          ================================================================ -->
-    <springProfile name="!prod">
+    <springProfile name="dev">
 
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
@@ -65,11 +65,11 @@
     </springProfile>
 
     <!-- ================================================================
-         PRODUCCIÓN (contenedor / App Platform)
+         QA Y PRODUCCIÓN (contenedor / App Platform)
          Solo CONSOLE → App Platform captura stdout/stderr automáticamente.
          Los logs de archivo no aplican en contenedores efímeros.
          ================================================================ -->
-    <springProfile name="prod">
+    <springProfile name="prod,qa">
 
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
