@@ -37,3 +37,4 @@ logs/
 
 ### Configuraciones locales (contienen secrets, nunca commitear) ###
 **/application-local.yml
+**/application-dev.yml

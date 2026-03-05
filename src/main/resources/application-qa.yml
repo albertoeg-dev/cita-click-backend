@@ -1,47 +1,43 @@
 # ============================================================================
-# CONFIGURACIÓN DE PRODUCCIÓN - CITA CLICK
+# CONFIGURACIÓN DE QA - CITA CLICK
 # ============================================================================
-# Este archivo se activa con: SPRING_PROFILES_ACTIVE=prod
-# Variables se inyectan desde variables de entorno del servidor
+# Activar con: SPRING_PROFILES_ACTIVE=qa
+# Desplegado en DO App Platform (QA) apuntando a schema ccdiaq
+# ============================================================================
 
 spring:
   application:
-    name: citaclick-api-prod
+    name: citaclick-api-qa
 
   # ============================================================================
-  # DATABASE - PostgreSQL en Producción
+  # BASE DE DATOS - Mismo servidor DO, schema de QA
+  # Schema: ccdiaq (cita-click-qa)
   # ============================================================================
   datasource:
-    url: ${DATABASE_URL}
-    username: ${DB_USER}
+    url: ${DATABASE_URL:jdbc:postgresql://db-citaclick-do-user-31752426-0.j.db.ondigitalocean.com:25060/defaultdb?currentSchema=ccdiaq&sslmode=require}
+    username: ${DB_USER:MXCCQSAAS}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      pool-name: CitaClickProdPool
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 30000   # 30s para obtener conexión del pool
-      idle-timeout: 600000        # 10 min antes de cerrar conexión inactiva
-      max-lifetime: 1800000       # 30 min vida máxima de una conexión
+      pool-name: CitaClickQAPool
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   # ============================================================================
-  # JPA - PRODUCCIÓN
+  # JPA / HIBERNATE
   # ============================================================================
-  # DDL_AUTO controla cómo Hibernate gestiona el schema en la BD:
-  #   validate  → Solo valida que las tablas existen (default en prod - RECOMENDADO)
-  #   update    → Crea/modifica tablas automáticamente (usar en el PRIMER deploy con BD vacía)
-  #   create    → Destruye y recrea todo (NUNCA usar con datos reales)
-  #
-  # ⚠️ PRIMER DEPLOY con base de datos vacía:
-  #   Lanza con: DDL_AUTO=update  → Hibernate crea todas las tablas
-  #   Luego cambia a: DDL_AUTO=validate (o elimina la variable para usar el default)
   jpa:
     hibernate:
-      ddl-auto: ${DDL_AUTO:validate}
+      # update: primer deploy con schema vacío
+      # validate: después de que las tablas ya existan
+      ddl-auto: ${DDL_AUTO:update}
     show-sql: false
     properties:
       hibernate:
-        default_schema: ${DB_SCHEMA:ccdiap}
+        default_schema: ${DB_SCHEMA:ccdiaq}
         format_sql: false
         jdbc:
           time_zone: America/Mexico_City
@@ -59,81 +55,59 @@ server:
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
 
 # ============================================================================
-# LOGGING - Producción
-# El formato se define en logback-spring.xml (perfil prod).
+# LOGGING - Más verboso que prod para detectar errores en QA
 # ============================================================================
 logging:
   level:
     root: WARN
-    com.reservas: INFO
-    org.springframework.web: WARN
-    org.springframework.security: WARN
-    org.hibernate: WARN
+    com.reservas: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
 
 # ============================================================================
 # JWT
 # ============================================================================
 jwt:
-  secret: ${JWT_SECRET}  # OBLIGATORIO: Generar con openssl rand -base64 64
-  expiration: 604800000  # 7 días
-  refresh-expiration: 2592000000  # 30 días
+  secret: ${JWT_SECRET}
+  expiration: 604800000
+  refresh-expiration: 2592000000
 
 # ============================================================================
 # GOOGLE OAUTH2
 # ============================================================================
 google:
   client:
-    id: ${GOOGLE_CLIENT_ID}
+    id: ${GOOGLE_CLIENT_ID:959341914970-esbnod0d1mhg4u1m8cae5q0g8knepnmv.apps.googleusercontent.com}
 
 # ============================================================================
-# STRIPE - PRODUCCIÓN
+# STRIPE - Usar SIEMPRE claves TEST en QA (sk_test_... / pk_test_...)
 # ============================================================================
 stripe:
   secret:
-    key: ${STRIPE_SECRET_KEY}  # sk_live_... en producción
-
+    key: ${STRIPE_SECRET_KEY}
   api:
-    key: ${STRIPE_API_KEY}  # pk_live_... en producción
-
+    key: ${STRIPE_API_KEY}
   webhook:
-    secret: ${STRIPE_WEBHOOK_SECRET}  # whsec_... del webhook en producción
-
+    secret: ${STRIPE_WEBHOOK_SECRET}
   success:
     url: ${FRONTEND_URL}/payment/success
-
   cancel:
     url: ${FRONTEND_URL}/payment/cancel
-
   price:
     basico: ${STRIPE_PRICE_BASICO}
     profesional: ${STRIPE_PRICE_PROFESIONAL}
     premium: ${STRIPE_PRICE_PREMIUM}
 
 # ============================================================================
-# TWILIO - SMS/WhatsApp (DESHABILITADO POR AHORA)
-# ============================================================================
-twilio:
-  account:
-    sid: ${TWILIO_ACCOUNT_SID:}  # Vacío = deshabilitado
-  auth:
-    token: ${TWILIO_AUTH_TOKEN:}
-  phone:
-    number: ${TWILIO_PHONE_NUMBER:}
-  whatsapp:
-    number: ${TWILIO_WHATSAPP_NUMBER:}
-
-# ============================================================================
-# RESEND - Email (PRIORIDAD)
+# RESEND - Email
 # ============================================================================
 resend:
   api:
-    key: ${RESEND_API_KEY}  # OBLIGATORIO - obtener en https://resend.com
+    key: ${RESEND_API_KEY}
   from:
-    email: ${RESEND_FROM_EMAIL:noreply@citaclick.com.mx}
-    name: ${RESEND_FROM_NAME:Cita Click}
-
-  # IDs de referencia de los templates en Resend Dashboard (solo documentación).
-  # El servicio carga los HTML desde src/main/resources/email-templates/ y los envía con el campo "html".
+    email: ${RESEND_FROM_EMAIL:qa@citaclick.com.mx}
+    name: ${RESEND_FROM_NAME:Cita Click QA}
   templates:
     verificacion-correo:      ${RESEND_TEMPLATE_VERIFICACION:verificacin-correo-electrnico}
     recordatorio-clasico:     ${RESEND_TEMPLATE_RECORDATORIO_CLASICO:recordatorio-clasico}
@@ -141,7 +115,7 @@ resend:
     recordatorio-minimalista: ${RESEND_TEMPLATE_RECORDATORIO_MINIMALISTA:recordatorio-minimalista}
 
 # ============================================================================
-# GOOGLE CLOUD STORAGE
+# GCP
 # ============================================================================
 gcp:
   project:
@@ -150,35 +124,50 @@ gcp:
     name: ${GCP_BUCKET_NAME:}
 
 # ============================================================================
-# RATE LIMITING
+# TWILIO - Deshabilitado en QA
+# ============================================================================
+twilio:
+  account:
+    sid: ${TWILIO_ACCOUNT_SID:}
+  auth:
+    token: ${TWILIO_AUTH_TOKEN:}
+  phone:
+    number: ${TWILIO_PHONE_NUMBER:}
+  whatsapp:
+    from: ${TWILIO_WHATSAPP_NUMBER:}
+    number: ${TWILIO_WHATSAPP_NUMBER:}
+
+# ============================================================================
+# RATE LIMITING - Habilitado en QA (igual que prod)
 # ============================================================================
 rate:
   limit:
-    enabled: true
+    enabled: ${RATE_LIMIT_ENABLED:true}
 
 # ============================================================================
 # FRONTEND URL
 # ============================================================================
 frontend:
-  url: ${FRONTEND_URL:https://citaclick.com.mx}
+  url: ${FRONTEND_URL}
 
 app:
   frontend:
-    url: ${FRONTEND_URL:https://citaclick.com.mx}
-    # Orígenes extra de CORS separados por coma.
-    extra-origins: ${FRONTEND_EXTRA_ORIGINS:https://www.citaclick.com.mx,https://app.citaclick.com.mx}
+    url: ${FRONTEND_URL}
+    extra-origins: ${FRONTEND_EXTRA_ORIGINS:}
   cookie:
-    secure: true        # HTTPS en producción
-    same-site: None     # Requerido: frontend y backend en subdominios distintos de ondigitalocean.app (cross-site)
+    secure: true      # HTTPS en DO App Platform
+    same-site: None   # Cross-site entre subdominios ondigitalocean.app (PSL)
 
 # ============================================================================
-# SPRINGDOC / SWAGGER - Deshabilitado en producción
+# SWAGGER / SPRINGDOC - Habilitado en QA para facilitar pruebas
+# URL: https://<qa-backend-url>/api/swagger-ui.html
 # ============================================================================
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
   swagger-ui:
-    enabled: false
+    enabled: true
+    path: /swagger-ui.html
 
 # ============================================================================
 # ACTUATOR

@@ -1,220 +1,74 @@
 # ============================================================================
-# APPLICATION CONFIGURATION
+# APPLICATION CONFIGURATION - BASE (común a todos los perfiles)
 # ============================================================================
+# Perfiles disponibles:
+#   dev  → application-dev.yml  (local, BD DO dev, swagger activo)
+#   prod → application-prod.yml (Digital Ocean App Platform)
+#
+# Activar perfil:
+#   IntelliJ: Edit Configurations → Active profiles: dev
+#   Maven:    ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+#   Env var:  SPRING_PROFILES_ACTIVE=dev
+# ============================================================================
+
 spring:
   application:
-    name: reservas-backend
+    name: citaclick-api
 
   # ============================================================================
-  # DATABASE CONFIGURATION
+  # DATABASE - Sobreescrito por cada perfil
   # ============================================================================
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://34.29.36.27:5432/db-cita-click-dev?currentSchema=ccdiad&sslmode=disable}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:<c9eTj=TG4h%I)Q|}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: CitaClickPool
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 30000   # 30s para obtener una conexión del pool
-      idle-timeout: 600000        # 10 min antes de cerrar conexión inactiva
-      max-lifetime: 1800000       # 30 min vida máxima de una conexión
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   # ============================================================================
-  # JPA / HIBERNATE CONFIGURATION
+  # JPA / HIBERNATE
   # ============================================================================
   jpa:
-    # HIBERNATE DDL AUTO - ESTRATEGIA POR ENTORNO
-    # ⚠️ CRÍTICO: No usar 'update' con BD ya inicializada
-    #
-    # VALORES PERMITIDOS:
-    # - validate: RECOMENDADO para dev/prod. Solo valida schema, NO modifica BD
-    # - update: Solo para desarrollo inicial (crea/actualiza tablas). PELIGROSO en prod
-    # - create: Destruye y recrea schema (SOLO para testing)
-    # - create-drop: Igual que create, pero elimina al cerrar (SOLO para tests)
-    # - none: No hace nada (usar con Flyway/Liquibase)
-    #
-    # ESTRATEGIA ACTUAL:
-    # - BD ya existe con datos reales → usar 'validate'
-    # - Cambios de schema → aplicar vía scripts SQL manuales o migraciones
-    # - 'update' genera errores DDL con índices/constraints existentes
-    # - TEMPORAL: usando 'update' para recrear schema después de reset de BD
-    hibernate:
-      ddl-auto: ${DDL_AUTO:update}
-
-    # NO mostrar SQL por defecto (habilitar en perfil local/test)
     show-sql: false
-
-    # Propiedades de Hibernate
     properties:
       hibernate:
-
-        # Schema por defecto (ccdiad=dev, ccdiap=prod)
-        default_schema: ${DB_SCHEMA:ccdiad}
-
-        # NO formatear SQL por defecto (performance)
         format_sql: false
-
-        # Naming strategy (snake_case para columnas)
         physical_naming_strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
-
-        # Configuración JDBC
         jdbc:
           time_zone: America/Mexico_City
-
-    # Open-in-view anti-pattern (desactivado)
     open-in-view: false
 
 # ============================================================================
-# SERVER CONFIGURATION
+# SERVER
 # ============================================================================
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /api
-
-  # Configuración de compresión
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
 
 # ============================================================================
-# LOGGING CONFIGURATION
-# El formato y los appenders se definen en logback-spring.xml para poder
-# incluir el correlationId y userId del MDC en cada línea de log.
+# LOGGING - Sobreescrito por cada perfil
 # ============================================================================
 logging:
   level:
     root: WARN
     com.reservas: INFO
-    org.springframework.web: WARN
-    org.springframework.security: WARN
-    org.hibernate.SQL: WARN
-    org.hibernate.type.descriptor.sql.BasicBinder: WARN
 
 # ============================================================================
-# JWT CONFIGURATION
-# ============================================================================
-jwt:
-  # Secret debe tener mínimo 512 bits (64 caracteres) para HS512
-  secret: ${JWT_SECRET:1aebff24e5e9403c0ce48178963c7323e5cfd3857876f5c943ad7785f34c4b21bc4b59821634795a64f6fa7dacd462fd1491181a462993223cd4c93e60e52bc3}
-  expiration: 604800000      # 7 días en milisegundos
-  refresh-expiration: 2592000000  # 30 días en milisegundos
-
-# ============================================================================
-# GOOGLE OAUTH2 CONFIGURATION
-# ============================================================================
-google:
-  client:
-    id: ${GOOGLE_CLIENT_ID:959341914970-esbnod0d1mhg4u1m8cae5q0g8knepnmv.apps.googleusercontent.com}
-
-# ============================================================================
-# STRIPE CONFIGURATION
-# ============================================================================
-stripe:
-  # Clave secreta de Stripe (usada por diferentes servicios)
-  secret:
-    key: ${STRIPE_SECRET_KEY:}
-
-  api:
-    key: ${STRIPE_API_KEY:}
-
-  webhook:
-    secret: ${STRIPE_WEBHOOK_SECRET:}
-
-  success:
-    url: ${FRONTEND_URL:http://localhost:5174}/payment/success
-
-  cancel:
-    url: ${FRONTEND_URL:http://localhost:5174}/payment/cancel
-
-  # Price IDs (crear en Stripe Dashboard)
-  price:
-    basico: ${STRIPE_PRICE_BASICO:price_1Sxa1bCJJfBmj7w4e7MTljm6}
-    profesional: ${STRIPE_PRICE_PROFESIONAL:price_1Sxa2HCJJfBmj7w48rjQIY2N}
-    premium: ${STRIPE_PRICE_PREMIUM:price_1Sxa2zCJJfBmj7w4aqqXGc68}
-# ============================================================================
-# TWILIO CONFIGURATION (SMS y WhatsApp)
-# ============================================================================
-twilio:
-  account:
-    sid: ${TWILIO_ACCOUNT_SID:}
-
-  auth:
-    token: ${TWILIO_AUTH_TOKEN:}
-
-  phone:
-    number: ${TWILIO_PHONE_NUMBER:}
-
-  whatsapp:
-    from: ${TWILIO_WHATSAPP_NUMBER:}
-    number: ${TWILIO_WHATSAPP_NUMBER:}
-
-
-# ============================================================================
-# RESEND CONFIGURATION (Email)
-# ============================================================================
-resend:
-  api:
-    key: ${RESEND_API_KEY:re_4pi5pRB6_DpjwV6nQ4T3VRXd4aMJnjxq4}
-
-  from:
-    email: ${RESEND_FROM_EMAIL:info@citaclick.com.mx}
-    name: ${RESEND_FROM_NAME:Cita Click}
-
-  # Template IDs creados en Resend Dashboard (resend.com/emails/templates)
-  templates:
-    verificacion-correo:      ${RESEND_TEMPLATE_VERIFICACION:verificacin-correo-electrnico}
-    recordatorio-clasico:     ${RESEND_TEMPLATE_RECORDATORIO_CLASICO:recordatorio-clasico}
-    recordatorio-moderno:     ${RESEND_TEMPLATE_RECORDATORIO_MODERNO:recordatorio-moderno}
-    recordatorio-minimalista: ${RESEND_TEMPLATE_RECORDATORIO_MINIMALISTA:recordatorio-minimalista}
-
-# ============================================================================
-# GOOGLE CLOUD PLATFORM (Cloud Storage)
-# ============================================================================
-gcp:
-  project:
-    id: ${GCP_PROJECT_ID:s}
-
-  bucket:
-    name: ${GCP_BUCKET_NAME:s}
-
-# ============================================================================
-# RATE LIMITING
-# ============================================================================
-rate:
-  limit:
-    enabled: ${RATE_LIMIT_ENABLED:true}
-
-# ============================================================================
-# FRONTEND URL
-# ============================================================================
-frontend:
-  url: ${FRONTEND_URL:http://localhost:5174}
-
-# ============================================================================
-# APPLICATION SETTINGS
-# ============================================================================
-app:
-  frontend:
-    url: ${FRONTEND_URL:http://localhost:5174}
-  cookie:
-    secure: false  # false en dev (HTTP). En producción usar app.cookie.secure=true
-
-# ============================================================================
-# ACTUATOR / MONITORING
+# ACTUATOR
 # ============================================================================
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics
-
   endpoint:
     health:
       show-details: when-authorized
-
   health:
     db:
       enabled: true
