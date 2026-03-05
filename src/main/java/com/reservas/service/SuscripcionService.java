@@ -10,6 +10,7 @@ import com.reservas.repository.RegistroIPRepository;
 import com.reservas.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,9 @@ public class SuscripcionService {
     private final UsuarioRepository usuarioRepository;
     private final RegistroIPRepository registroIPRepository;
     private final EmailService emailService;
+
+    @Value("${app.frontend.url:https://app.citaclick.com.mx}")
+    private String frontendUrl;
 
     // Configuración de límites
     private static final int MAX_REGISTROS_PRUEBA_POR_IP = 3; // Máximo 3 pruebas desde la misma IP
@@ -278,23 +282,15 @@ public class SuscripcionService {
     // Métodos privados de notificación
 
     private void enviarNotificacionFinPrueba(Negocio negocio) {
-        String asunto = "Tu periodo de prueba termina mañana";
-        String mensaje = String.format(
-                "Hola %s,\n\n" +
-                "Tu periodo de prueba de 7 días termina mañana.\n\n" +
-                "Para continuar usando el sistema, selecciona un plan que se ajuste a tus necesidades.\n\n" +
-                "Planes disponibles:\n" +
-                "- Básico: $299/mes\n" +
-                "- Profesional: $699/mes\n" +
-                "- Premium: $1,299/mes\n\n" +
-                "Ingresa a tu cuenta para seleccionar un plan.\n\n" +
-                "Saludos,\n" +
-                "El equipo de Cita Click",
-                negocio.getNombre()
-        );
+        // URL de login que redirige directamente a la sección de planes
+        String loginUrl = frontendUrl + "/login?redirect=/planes&from=trial-ending";
 
-        emailService.enviarEmail(negocio.getEmail(), asunto, mensaje);
-        log.info("[Notificación] Email de fin de prueba enviado a: {}", negocio.getEmail());
+        boolean enviado = emailService.enviarEmailFinPrueba(negocio.getEmail(), negocio.getNombre(), loginUrl);
+        if (enviado) {
+            log.info("[Notificación] Email HTML de fin de prueba enviado a: {}", negocio.getEmail());
+        } else {
+            log.warn("[Notificación] No se pudo enviar email de fin de prueba a: {}", negocio.getEmail());
+        }
     }
 
     private void enviarNotificacionVencimiento(Negocio negocio) {

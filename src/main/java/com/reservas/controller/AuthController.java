@@ -48,6 +48,10 @@ public class AuthController {
     @Value("${app.cookie.secure:false}")
     private boolean cookieSecure;
 
+    /** Strict en desarrollo, None en producción (cross-site DO domains) */
+    @Value("${app.cookie.same-site:Strict}")
+    private String cookieSameSite;
+
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<?>> register(
             @Valid @RequestBody RegisterRequest request,
@@ -144,7 +148,7 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from("access_token", token)
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .sameSite("Strict")
+                .sameSite(cookieSameSite)
                 .path("/")
                 .maxAge(Duration.ofDays(7))
                 .build();
@@ -158,7 +162,7 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from("access_token", "")
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .sameSite("Strict")
+                .sameSite(cookieSameSite)
                 .path("/")
                 .maxAge(0)
                 .build();
