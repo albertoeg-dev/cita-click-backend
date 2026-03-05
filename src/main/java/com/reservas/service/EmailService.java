@@ -382,4 +382,23 @@ public class EmailService {
 
         return enviarConTemplate(destinatario, asunto, "verificacion-correo", variables);
     }
+
+    /**
+     * Envía aviso de fin de periodo de prueba usando el template HTML {@code prueba-terminando.html}.
+     * Variables reemplazadas: {@code {{nombre}}}, {@code {{loginUrl}}}
+     *
+     * @param destinatario Email del destinatario
+     * @param nombre       Nombre del negocio / titular
+     * @param loginUrl     URL de login que redirige a la selección de planes
+     * @return true si se envió correctamente
+     */
+    public boolean enviarEmailFinPrueba(String destinatario, String nombre, String loginUrl) {
+        String asunto = "Tu periodo de prueba termina mañana — elige tu plan en Cita Click";
+
+        Map<String, String> variables = new HashMap<>();
+        variables.put("nombre",   nombre);
+        variables.put("loginUrl", loginUrl);
+
+        return enviarConTemplate(destinatario, asunto, "prueba-terminando", variables);
+    }
 }
