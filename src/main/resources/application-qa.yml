@@ -157,6 +157,8 @@ app:
   cookie:
     secure: true      # HTTPS en DO App Platform
     same-site: None   # Cross-site entre subdominios ondigitalocean.app (PSL)
+  admin:
+    secret-key: ${ADMIN_SECRET_KEY}
 
 # ============================================================================
 # SWAGGER / SPRINGDOC - Habilitado en QA para facilitar pruebas

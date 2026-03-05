@@ -170,6 +170,8 @@ app:
   cookie:
     secure: true        # HTTPS en producción
     same-site: None     # Requerido: frontend y backend en subdominios distintos de ondigitalocean.app (cross-site)
+  admin:
+    secret-key: ${ADMIN_SECRET_KEY}  # OBLIGATORIO: definir en variables de entorno de DO
 
 # ============================================================================
 # SPRINGDOC / SWAGGER - Deshabilitado en producción
