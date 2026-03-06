@@ -57,6 +57,7 @@ public class SuscripcionInfoService {
                 .diasRestantesVencimiento(!negocio.isEnPeriodoPrueba() && "activo".equals(negocio.getEstadoPago())
                         ? (int) negocio.diasRestantesVencimiento() : null)
                 .necesitaNotificacion(negocio.necesitaNotificacionPrueba() || negocio.necesitaNotificacionVencimiento())
+                .onboardingCompleto(negocio.isOnboardingCompleto())
                 .build();
 
         // Generar mensaje descriptivo

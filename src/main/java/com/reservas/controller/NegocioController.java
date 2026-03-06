@@ -77,6 +77,27 @@ public class NegocioController {
         }
     }
 
+    @PostMapping("/onboarding/completar")
+    public ResponseEntity<ApiResponse> completarOnboarding(Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            negocioService.completarOnboarding(email);
+            log.info("Onboarding completado para: {}", email);
+
+            return ResponseEntity.ok(ApiResponse.builder()
+                    .success(true)
+                    .message("Onboarding completado")
+                    .build());
+        } catch (Exception e) {
+            log.error("Error al completar onboarding: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.builder()
+                            .success(false)
+                            .message(e.getMessage())
+                            .build());
+        }
+    }
+
     @GetMapping("/horarios")
     public ResponseEntity<ApiResponse> obtenerHorarios(Authentication authentication) {
         try {
