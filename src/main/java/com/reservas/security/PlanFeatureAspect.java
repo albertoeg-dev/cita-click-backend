@@ -1,7 +1,7 @@
 package com.reservas.security;
 
 import com.reservas.exception.LimiteExcedidoException;
-import com.reservas.service.PlanLimitesService;
+import com.reservas.service.ModuloService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
@@ -15,7 +15,9 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 /**
- * Aspecto para validar funcionalidades del plan antes de ejecutar un método
+ * Aspecto para validar acceso a módulos antes de ejecutar un método.
+ * Verifica que el negocio del usuario autenticado tenga activo el módulo
+ * indicado en la anotación {@link RequiresPlanFeature}.
  */
 @Aspect
 @Component
@@ -23,7 +25,7 @@ import java.lang.reflect.Method;
 @RequiredArgsConstructor
 public class PlanFeatureAspect {
 
-    private final PlanLimitesService planLimitesService;
+    private final ModuloService moduloService;
 
     @Before("@annotation(com.reservas.security.RequiresPlanFeature)")
     public void checkPlanFeature(JoinPoint joinPoint) {
@@ -35,31 +37,29 @@ public class PlanFeatureAspect {
             return;
         }
 
-        String funcionalidad = annotation.value();
+        String clave = annotation.value();
         String customMessage = annotation.message();
 
-        // Obtener el email del usuario autenticado
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            log.warn("Usuario no autenticado intentando acceder a funcionalidad: {}", funcionalidad);
+            log.warn("Usuario no autenticado intentando acceder al módulo: {}", clave);
             throw new LimiteExcedidoException("Debe iniciar sesión para acceder a esta funcionalidad", 0, 0);
         }
 
         String email = authentication.getName();
-        log.info("Validando funcionalidad '{}' para usuario: {}", funcionalidad, email);
+        log.info("Verificando módulo '{}' para usuario: {}", clave, email);
 
-        // Validar funcionalidad usando PlanLimitesService
-        boolean tieneAcceso = planLimitesService.validarFuncionalidadPorEmail(email, funcionalidad);
+        boolean tieneAcceso = moduloService.tieneModuloPorEmail(email, clave);
 
         if (!tieneAcceso) {
             String mensaje = customMessage.isEmpty()
-                    ? String.format("Esta funcionalidad ('%s') no está disponible en su plan actual. Actualice su plan para acceder.", funcionalidad)
+                    ? String.format("El módulo '%s' no está activo en tu cuenta. Actívalo desde el Marketplace.", clave)
                     : customMessage;
 
-            log.warn("Acceso denegado a funcionalidad '{}' para usuario: {}", funcionalidad, email);
+            log.warn("Acceso denegado al módulo '{}' para usuario: {}", clave, email);
             throw new LimiteExcedidoException(mensaje, 0, 0);
         }
 
-        log.info("Acceso concedido a funcionalidad '{}' para usuario: {}", funcionalidad, email);
+        log.info("Acceso concedido al módulo '{}' para usuario: {}", clave, email);
     }
 }
