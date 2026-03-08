@@ -10,6 +10,7 @@ import com.reservas.service.RateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -121,6 +122,7 @@ class AuthControllerTest {
     @DisplayName("POST /api/auth/login - Debe autenticar usuario correctamente")
     void testLogin_Success() {
         // Arrange
+        ReflectionTestUtils.setField(authController, "rateLimitEnabled", true);
         when(rateLimitService.tryConsume(anyString())).thenReturn(true);
         when(httpServletRequest.getRemoteAddr()).thenReturn("127.0.0.1");
         when(authService.login(any(LoginRequest.class))).thenReturn(loginResponse);
