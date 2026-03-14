@@ -27,6 +27,7 @@ public class NegocioResponse {
 
     private String plan;
     private String estadoPago;
+    private boolean onboardingCompleto;
 
     @Data
     @Builder

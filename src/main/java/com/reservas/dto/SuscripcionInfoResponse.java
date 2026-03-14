@@ -28,6 +28,7 @@ public class SuscripcionInfoResponse {
     private Integer diasRestantesPrueba;
     private Integer diasRestantesVencimiento;
     private boolean necesitaNotificacion;
+    private boolean onboardingCompleto;
     private String mensaje;                     // Mensaje descriptivo del estado
     private List<ModuloNegocioDTO> modulosActivos; // Módulos activos del negocio
 

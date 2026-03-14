@@ -32,13 +32,13 @@ import java.util.List;
 @Service("twilioWhatsAppProvider")
 public class TwilioWhatsAppProvider implements NotificationProvider {
 
-    @Value("${twilio.account.sid}")
+    @Value("${twilio.account.sid:}")
     private String accountSid;
 
-    @Value("${twilio.auth.token}")
+    @Value("${twilio.auth.token:}")
     private String authToken;
 
-    @Value("${twilio.whatsapp.from}")
+    @Value("${twilio.whatsapp.from:}")
     private String whatsappFrom;
 
     private boolean configured = false;

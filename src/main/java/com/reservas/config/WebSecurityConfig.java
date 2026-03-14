@@ -135,6 +135,8 @@ public class WebSecurityConfig {
                          .requestMatchers(HttpMethod.POST, "/webhooks/twilio/**").permitAll()
                          // Endpoint público para que el cliente final cargue datos del pago
                          .requestMatchers(HttpMethod.GET, "/v1/payments/public/**").permitAll()
+                         // Admin scheduler: sin JWT, protegido por X-Admin-Key header
+                         .requestMatchers(HttpMethod.GET, "/admin/scheduler/**").permitAll()
                          // Todas las demás rutas requieren autenticación
                          .anyRequest().authenticated();
                 })

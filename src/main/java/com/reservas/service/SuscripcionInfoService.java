@@ -59,6 +59,7 @@ public class SuscripcionInfoService {
                 .diasRestantesVencimiento(!negocio.isEnPeriodoPrueba() && "activo".equals(negocio.getEstadoPago())
                         ? (int) negocio.diasRestantesVencimiento() : null)
                 .necesitaNotificacion(negocio.necesitaNotificacionPrueba() || negocio.necesitaNotificacionVencimiento())
+                .onboardingCompleto(negocio.isOnboardingCompleto())
                 .modulosActivos(moduloService.listarModulosConEstado(negocio.getId()))
                 .build();
 
@@ -91,5 +92,23 @@ public class SuscripcionInfoService {
         }
 
         return negocio;
+    }
+
+    /**
+     * Obtiene el ID (UUID) del usuario autenticado como String.
+     * Útil para operaciones de billing que requieren el ID de usuario.
+     *
+     * @param email Email del usuario
+     * @return UUID del usuario como String
+     * @throws RuntimeException si el usuario no existe
+     */
+    @Transactional(readOnly = true)
+    public String obtenerIdUsuarioPorEmail(String email) {
+        log.debug("[SuscripcionInfoService] Obteniendo ID de usuario para: {}", email);
+
+        Usuario usuario = usuarioRepository.findByEmailWithNegocio(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        return usuario.getId().toString();
     }
 }

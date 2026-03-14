@@ -125,6 +125,10 @@ public class Negocio extends AuditableEntity {
     @Builder.Default
     private boolean notificacionVencimientoEnviada = false;
 
+    @Column(name = "onboarding_completo", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean onboardingCompleto = false;
+
     @PrePersist
     protected void onPrePersist() {
         fechaRegistro = LocalDateTime.now();

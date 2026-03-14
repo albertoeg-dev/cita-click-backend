@@ -1,8 +1,10 @@
 package com.reservas.controller;
 
+import com.reservas.billing.service.SubscriptionService;
 import com.reservas.dto.ActivarSuscripcionRequest;
 import com.reservas.dto.SuscripcionInfoResponse;
 import com.reservas.entity.Negocio;
+import com.reservas.entity.StripeSubscription;
 import com.reservas.service.SuscripcionInfoService;
 import com.reservas.service.SuscripcionService;
 import jakarta.validation.Valid;
@@ -11,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Controller para gestionar suscripciones y pagos.
@@ -24,6 +28,7 @@ public class SuscripcionController {
 
     private final SuscripcionService suscripcionService;
     private final SuscripcionInfoService suscripcionInfoService;
+    private final SubscriptionService billingService;
 
     /**
      * Obtiene la información de la suscripción del usuario autenticado.
@@ -71,6 +76,52 @@ public class SuscripcionController {
         return ResponseEntity.ok().body(
                 new MessageResponse("Suscripción activada exitosamente. ¡Bienvenido de vuelta!")
         );
+    }
+
+    /**
+     * Cancela la suscripción activa del usuario al final del período de facturación actual.
+     * El usuario mantiene acceso hasta la fecha de fin del período pagado.
+     */
+    @PostMapping("/cancelar")
+    public ResponseEntity<?> cancelarSuscripcion(Authentication authentication) {
+        log.info("[SuscripcionController] Solicitud de cancelación para: {}", authentication.getName());
+
+        try {
+            String email = authentication.getName();
+            String usuarioId = suscripcionInfoService.obtenerIdUsuarioPorEmail(email);
+
+            List<StripeSubscription> suscripciones = billingService.getSubscriptionsByUsuario(usuarioId);
+
+            // Buscar suscripción activa que no esté ya programada para cancelar
+            StripeSubscription activa = suscripciones.stream()
+                    .filter(s -> (s.getStatus() == StripeSubscription.SubscriptionStatus.ACTIVE ||
+                                  s.getStatus() == StripeSubscription.SubscriptionStatus.TRIALING) &&
+                                  !Boolean.TRUE.equals(s.getCancelAtPeriodEnd()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (activa == null) {
+                return ResponseEntity.badRequest().body(
+                        new MessageResponse("No se encontró una suscripción activa para cancelar.")
+                );
+            }
+
+            // Cancelar al final del período (no inmediatamente)
+            billingService.cancelSubscription(activa.getSubscriptionId(), true);
+
+            log.info("[SuscripcionController] Suscripción programada para cancelación al fin de período: {}",
+                    activa.getSubscriptionId());
+
+            return ResponseEntity.ok().body(
+                    new MessageResponse("Tu suscripción se cancelará al final del período de facturación actual. Tu acceso permanecerá activo hasta entonces.")
+            );
+
+        } catch (Exception e) {
+            log.error("[SuscripcionController] Error al cancelar suscripción: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(
+                    new MessageResponse("Error al cancelar la suscripción: " + e.getMessage())
+            );
+        }
     }
 
     /**

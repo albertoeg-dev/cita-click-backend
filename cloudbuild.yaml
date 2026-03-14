@@ -1,0 +1,46 @@
+# ============================================
+# CLOUD BUILD - BACKEND (Spring Boot)
+# ============================================
+# Trigger: push a master → build + deploy en Cloud Run (prod)
+# Trigger: push a test   → build + deploy en Cloud Run (qa)
+
+steps:
+  # 1. Construir imagen Docker (multi-stage: Maven build + JRE runtime)
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend:$COMMIT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend:latest'
+      - '.'
+    timeout: '1200s'  # 20 min — Maven puede tardar en descargar dependencias
+
+  # 2. Subir imagen a Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend'
+
+  # 3. Desplegar en Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - 'gcloud'
+      - 'run'
+      - 'deploy'
+      - 'citaclick-backend-prod'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1800s'  # 30 min timeout total del build

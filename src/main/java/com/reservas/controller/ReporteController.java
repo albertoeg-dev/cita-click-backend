@@ -3,12 +3,11 @@ package com.reservas.controller;
 import com.reservas.dto.response.ApiResponse;
 import com.reservas.dto.response.ReporteResponse;
 import com.reservas.entity.Negocio;
-import com.reservas.entity.Usuario;
-import com.reservas.repository.UsuarioRepository;
 import com.reservas.security.RequiresPlanFeature;
 import com.reservas.service.ExcelService;
 import com.reservas.service.PdfService;
 import com.reservas.service.ReporteService;
+import com.reservas.service.SuscripcionInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -37,7 +36,7 @@ public class ReporteController {
     private ExcelService excelService;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private SuscripcionInfoService suscripcionInfoService;
 
     @GetMapping("/diario")
     @RequiresPlanFeature(value = "reportes_avanzados", message = "Los reportes avanzados solo están disponibles en el plan Premium. Actualice su plan para acceder a esta funcionalidad.")
@@ -95,9 +94,7 @@ public class ReporteController {
             Authentication auth) {
         try {
             String email = auth.getName();
-            Usuario usuario = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            Negocio negocio = usuario.getNegocio();
+            Negocio negocio = suscripcionInfoService.obtenerNegocioPorEmail(email);
 
             ReporteResponse reporte = reporteService.generarReporteDiario(email, fecha);
             byte[] pdfBytes = pdfService.generarReporteDiarioPdf(reporte, negocio.getNombre(), fecha);
@@ -124,9 +121,7 @@ public class ReporteController {
             Authentication auth) {
         try {
             String email = auth.getName();
-            Usuario usuario = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            Negocio negocio = usuario.getNegocio();
+            Negocio negocio = suscripcionInfoService.obtenerNegocioPorEmail(email);
 
             ReporteResponse reporte = reporteService.generarReporteSemanal(email, fechaInicio);
             byte[] pdfBytes = pdfService.generarReporteSemanalPdf(reporte, negocio.getNombre());
@@ -154,9 +149,7 @@ public class ReporteController {
             Authentication auth) {
         try {
             String email = auth.getName();
-            Usuario usuario = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            Negocio negocio = usuario.getNegocio();
+            Negocio negocio = suscripcionInfoService.obtenerNegocioPorEmail(email);
 
             ReporteResponse reporte = reporteService.generarReporteMensual(email, mes, anio);
             byte[] pdfBytes = pdfService.generarReporteMensualPdf(reporte, negocio.getNombre());
@@ -185,9 +178,7 @@ public class ReporteController {
             Authentication auth) {
         try {
             String email = auth.getName();
-            Usuario usuario = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            Negocio negocio = usuario.getNegocio();
+            Negocio negocio = suscripcionInfoService.obtenerNegocioPorEmail(email);
 
             ReporteResponse reporte = reporteService.generarReporteDiario(email, fecha);
             byte[] excelBytes = excelService.generarReporteDiarioExcel(reporte, negocio.getNombre(), fecha);
@@ -214,9 +205,7 @@ public class ReporteController {
             Authentication auth) {
         try {
             String email = auth.getName();
-            Usuario usuario = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            Negocio negocio = usuario.getNegocio();
+            Negocio negocio = suscripcionInfoService.obtenerNegocioPorEmail(email);
 
             ReporteResponse reporte = reporteService.generarReporteSemanal(email, fechaInicio);
             byte[] excelBytes = excelService.generarReporteSemanalExcel(reporte, negocio.getNombre());
@@ -244,9 +233,7 @@ public class ReporteController {
             Authentication auth) {
         try {
             String email = auth.getName();
-            Usuario usuario = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            Negocio negocio = usuario.getNegocio();
+            Negocio negocio = suscripcionInfoService.obtenerNegocioPorEmail(email);
 
             ReporteResponse reporte = reporteService.generarReporteMensual(email, mes, anio);
             byte[] excelBytes = excelService.generarReporteMensualExcel(reporte, negocio.getNombre());

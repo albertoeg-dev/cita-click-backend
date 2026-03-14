@@ -48,6 +48,22 @@ public class NegocioService {
     }
 
     /**
+     * Marca el onboarding como completado para el negocio del usuario autenticado.
+     */
+    @Transactional
+    public void completarOnboarding(String email) {
+        Usuario usuario = usuarioRepository.findByEmailWithNegocio(email)
+                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+
+        Negocio negocio = usuario.getNegocio();
+        if (negocio == null) throw new RuntimeException("Negocio no encontrado");
+
+        negocio.setOnboardingCompleto(true);
+        negocioRepository.save(negocio);
+        log.info("[Onboarding] Completado para negocio: {}", negocio.getNombre());
+    }
+
+    /**
      * Actualizar datos del negocio
      */
     @Transactional
@@ -331,6 +347,7 @@ public class NegocioService {
                 .direccion(direccion)
                 .plan(negocio.getPlan())
                 .estadoPago(negocio.getEstadoPago())
+                .onboardingCompleto(negocio.isOnboardingCompleto())
                 .build();
     }
 }
