@@ -4,11 +4,13 @@ import com.reservas.dto.response.CheckoutResponse;
 import com.reservas.entity.Modulo;
 import com.reservas.entity.ModuloNegocio;
 import com.reservas.entity.Negocio;
+import com.reservas.entity.Pago;
 import com.reservas.entity.Usuario;
 import com.reservas.exception.NotFoundException;
 import com.reservas.repository.ModuloNegocioRepository;
 import com.reservas.repository.ModuloRepository;
 import com.reservas.repository.NegocioRepository;
+import com.reservas.repository.PagoRepository;
 import com.reservas.repository.UsuarioRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
@@ -34,9 +36,10 @@ import java.util.UUID;
  * Servicio para activar y cancelar módulos del marketplace.
  *
  * Flujo de activación:
- *   1. El usuario llama a {@link #crearCheckoutModulo} → redirige a Stripe Hosted Checkout.
+ *   1. El usuario llama a {@link #crearCheckoutModulo} → crea sesión de Stripe + registro Pago pendiente.
  *   2. Stripe llama al webhook con checkout.session.completed (metadata.tipo=modulo).
  *   3. {@link StripeWebhookController} detecta el tipo y llama a {@link #activarModulo}.
+ *   4. {@link #activarModulo} activa el módulo y marca el Pago como completado.
  *   Nota: los módulos incluyen 7 días de prueba gratuita antes del primer cobro.
  *
  * Flujo de cancelación:
@@ -51,6 +54,7 @@ public class ModuloActivacionService {
     private final ModuloNegocioRepository moduloNegocioRepository;
     private final UsuarioRepository usuarioRepository;
     private final NegocioRepository negocioRepository;
+    private final PagoRepository pagoRepository;
 
     @Value("${stripe.api.key}")
     private String stripeApiKey;
@@ -72,11 +76,11 @@ public class ModuloActivacionService {
 
     /**
      * Crea una sesión de checkout de Stripe para activar un módulo.
-     * Usa price_data dinámico con el precio del catálogo (no requiere Price IDs en Stripe).
+     * Guarda un registro Pago (pending) para que aparezca en el historial.
      *
      * @param clave         Clave del módulo a activar
      * @param emailUsuario  Email del usuario autenticado
-     * @return URL de la sesión de Stripe Hosted Checkout
+     * @return CheckoutResponse con URL de Stripe Hosted Checkout
      */
     @Transactional
     public CheckoutResponse crearCheckoutModulo(String clave, String emailUsuario) {
@@ -117,7 +121,6 @@ public class ModuloActivacionService {
 
         if (stripePriceId != null && !stripePriceId.isBlank()) {
             // ── Opción A: producto pre-creado en Stripe (recomendado) ──────────
-            // Genera registros limpios en el Stripe Dashboard por módulo.
             log.info("[ModuloActivacion] Usando Price ID '{}' para módulo '{}'", stripePriceId, clave);
             lineItem = SessionCreateParams.LineItem.builder()
                     .setPrice(stripePriceId)
@@ -125,7 +128,6 @@ public class ModuloActivacionService {
                     .build();
         } else {
             // ── Opción B: price_data dinámico (fallback si no hay Price ID) ───
-            // Útil durante desarrollo antes de configurar productos en Stripe.
             log.warn("[ModuloActivacion] Módulo '{}' sin Price ID — usando price_data dinámico", clave);
             lineItem = SessionCreateParams.LineItem.builder()
                     .setQuantity(1L)
@@ -174,6 +176,24 @@ public class ModuloActivacionService {
 
             log.info("[ModuloActivacion] Sesión creada: {} para módulo: {}", session.getId(), clave);
 
+            // ─── Registrar Pago pendiente ────────────────────────────────────────
+            // Esto permite que el módulo aparezca en el historial de pagos desde
+            // el momento en que el usuario inicia el proceso, incluso antes de completar.
+            Pago pago = Pago.builder()
+                    .negocio(negocio)
+                    .stripeCheckoutSessionId(session.getId())
+                    .stripeCustomerId(customerId)
+                    .plan(clave)   // clave del módulo como identificador de "plan"
+                    .monto(modulo.getPrecioMensual())
+                    .moneda("MXN")
+                    .estado("pending")
+                    .emailCliente(emailUsuario)
+                    .descripcion("Módulo: " + modulo.getNombre()
+                            + " — 7 días gratis, luego $" + modulo.getPrecioMensual().toPlainString() + " MXN/mes")
+                    .build();
+            pagoRepository.save(pago);
+            log.info("[ModuloActivacion] Pago pendiente registrado para módulo '{}'", clave);
+
             return CheckoutResponse.builder()
                     .sessionId(session.getId())
                     .url(session.getUrl())
@@ -189,19 +209,21 @@ public class ModuloActivacionService {
     }
 
     // ============================================================
-    // Activación (llamada desde webhook)
+    // Activación (llamada desde webhook y desde session-status)
     // ============================================================
 
     /**
      * Activa un módulo para un negocio. Llamado desde el webhook de Stripe
-     * cuando checkout.session.completed tiene metadata.tipo = "modulo".
+     * cuando checkout.session.completed tiene metadata.tipo = "modulo",
+     * y como respaldo desde {@link StripeService#obtenerEstadoSesion}.
      *
      * @param negocioId             ID del negocio
      * @param clave                 Clave del módulo a activar
      * @param stripeSubscriptionId  ID de la suscripción creada en Stripe
+     * @param checkoutSessionId     ID de la sesión de checkout (para actualizar el Pago)
      */
     @Transactional
-    public void activarModulo(UUID negocioId, String clave, String stripeSubscriptionId) {
+    public void activarModulo(UUID negocioId, String clave, String stripeSubscriptionId, String checkoutSessionId) {
         log.info("[ModuloActivacion] Activando módulo '{}' para negocio: {}", clave, negocioId);
 
         Negocio negocio = negocioRepository.findById(negocioId)
@@ -229,6 +251,21 @@ public class ModuloActivacionService {
                             log.info("[ModuloActivacion] Módulo '{}' activado exitosamente para negocio: {}", clave, negocioId);
                         }
                 );
+
+        // ─── Marcar el Pago como completado ──────────────────────────────────
+        // Actualiza el registro pendiente creado en crearCheckoutModulo()
+        if (checkoutSessionId != null) {
+            pagoRepository.findByStripeCheckoutSessionId(checkoutSessionId)
+                    .ifPresent(pago -> {
+                        if (!"completed".equals(pago.getEstado())) {
+                            pago.setEstado("completed");
+                            pago.setFechaCompletado(LocalDateTime.now());
+                            pagoRepository.save(pago);
+                            log.info("[ModuloActivacion] Pago '{}' marcado como completado (módulo: {})",
+                                    pago.getId(), clave);
+                        }
+                    });
+        }
     }
 
     // ============================================================
