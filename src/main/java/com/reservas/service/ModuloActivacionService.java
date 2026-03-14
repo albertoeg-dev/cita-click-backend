@@ -37,6 +37,7 @@ import java.util.UUID;
  *   1. El usuario llama a {@link #crearCheckoutModulo} → redirige a Stripe Hosted Checkout.
  *   2. Stripe llama al webhook con checkout.session.completed (metadata.tipo=modulo).
  *   3. {@link StripeWebhookController} detecta el tipo y llama a {@link #activarModulo}.
+ *   Nota: los módulos incluyen 7 días de prueba gratuita antes del primer cobro.
  *
  * Flujo de cancelación:
  *   El usuario llama a {@link #cancelarModulo} → se cancela en Stripe y se marca inactivo.
@@ -156,6 +157,12 @@ public class ModuloActivacionService {
                     .setCancelUrl(cancelUrl)
                     .putAllMetadata(metadata)
                     .addLineItem(lineItem)
+                    // 7 días de prueba gratuita antes del primer cobro
+                    .setSubscriptionData(
+                            SessionCreateParams.SubscriptionData.builder()
+                                    .setTrialPeriodDays(7L)
+                                    .build()
+                    )
                     .setAutomaticTax(
                             SessionCreateParams.AutomaticTax.builder()
                                     .setEnabled(false)

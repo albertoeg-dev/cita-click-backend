@@ -3,6 +3,7 @@ package com.reservas.dto;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -35,4 +36,7 @@ public class ModuloNegocioDTO {
 
     /** ID de suscripción Stripe que factura este módulo, null si no está activo */
     private String stripeSubscriptionId;
+
+    /** Próxima fecha estimada de cobro, calculada mensualmente desde fechaActivacion */
+    private LocalDate proximaFechaCobro;
 }
