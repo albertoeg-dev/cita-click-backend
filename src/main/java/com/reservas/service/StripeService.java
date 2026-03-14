@@ -51,6 +51,7 @@ public class StripeService {
     private final UsuarioRepository usuarioRepository;
     private final NegocioRepository negocioRepository;
     private final SuscripcionService suscripcionService;
+    private final ModuloActivacionService moduloActivacionService;
 
     @Value("${stripe.api.key}")
     private String stripeApiKey;
@@ -216,28 +217,54 @@ public class StripeService {
                 response.put("payment_intent", session.getPaymentIntent());
             }
 
+            // ─── Exponer metadata al frontend para distinguir tipo de compra ──────
+            // El frontend usa tipo=modulo para mostrar contenido específico en PaymentSuccessPage
+            if (session.getMetadata() != null) {
+                String tipo = session.getMetadata().get("tipo");
+                if (tipo != null) {
+                    response.put("tipo", tipo);
+                    response.put("modulo_clave", session.getMetadata().get("modulo_clave"));
+                }
+            }
+
             // ============================================================
-            // RESPALDO: Activar suscripción si la sesión está completa
-            // Esto asegura la activación incluso si el webhook no llega
-            // (ej: desarrollo local sin Stripe CLI)
+            // RESPALDO: Activar suscripción/módulo si la sesión está completa.
+            // Garantiza la activación aunque el webhook de Stripe no llegue
+            // (frecuente en desarrollo local sin Stripe CLI).
             // ============================================================
             if ("complete".equals(session.getStatus()) && "subscription".equals(session.getMode())) {
                 try {
-                    String negocioId = session.getMetadata().get("negocio_id");
-                    String plan = session.getMetadata().get("plan");
+                    String tipo = session.getMetadata() != null ? session.getMetadata().get("tipo") : null;
 
-                    if (negocioId != null && plan != null) {
-                        Negocio negocio = negocioRepository.findById(UUID.fromString(negocioId))
-                                .orElse(null);
+                    if ("modulo".equals(tipo)) {
+                        // ── Respaldo: activar módulo individual ───────────────────────
+                        String clave = session.getMetadata().get("modulo_clave");
+                        String negocioIdStr = session.getMetadata().get("negocio_id");
+                        String subscriptionId = session.getSubscription();
 
-                        // Solo activar si aún no está activo con este plan
-                        if (negocio != null && (!"activo".equals(negocio.getEstadoPago()) || !plan.equals(negocio.getPlan()))) {
-                            log.info("[Stripe] Activando suscripción desde session-status (respaldo webhook)");
-                            procesarSuscripcionCreada(session);
+                        if (clave != null && negocioIdStr != null && subscriptionId != null) {
+                            log.info("[Stripe] Activando módulo '{}' desde session-status (respaldo webhook)", clave);
+                            moduloActivacionService.activarModulo(
+                                    UUID.fromString(negocioIdStr), clave, subscriptionId);
+                        }
+                    } else {
+                        // ── Respaldo: activar plan base/completo ──────────────────────
+                        String negocioId = session.getMetadata().get("negocio_id");
+                        String plan = session.getMetadata().get("plan");
+
+                        if (negocioId != null && plan != null) {
+                            Negocio negocio = negocioRepository.findById(UUID.fromString(negocioId))
+                                    .orElse(null);
+
+                            if (negocio != null && (!"activo".equals(negocio.getEstadoPago())
+                                    || !plan.equals(negocio.getPlan()))) {
+                                log.info("[Stripe] Activando suscripción desde session-status (respaldo webhook)");
+                                procesarSuscripcionCreada(session);
+                            }
                         }
                     }
                 } catch (Exception e) {
-                    // No fallar la consulta de estado si la activación falla
+                    // No fallar la consulta de estado si la activación de respaldo falla
                     log.warn("[Stripe] Error en activación de respaldo: {}", e.getMessage());
                 }
             } else if ("complete".equals(session.getStatus()) && "paid".equals(session.getPaymentStatus())
