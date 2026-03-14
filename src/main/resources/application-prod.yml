@@ -87,27 +87,39 @@ google:
 
 # ============================================================================
 # STRIPE - PRODUCCIÓN
+# ----------------------------------------------------------------------------
+# ⚠️  secret.key y api.key deben tener el MISMO valor (sk_live_...).
+#     La clave pública (pk_live_) va SOLO en el frontend.
+#
+# PLANES: 2 productos en Stripe LIVE.
+# MÓDULOS: 9 productos en Stripe LIVE, uno por módulo.
 # ============================================================================
 stripe:
   secret:
-    key: ${STRIPE_SECRET_KEY}  # sk_live_... en producción
-
+    key: ${STRIPE_SECRET_KEY}     # sk_live_51...
   api:
-    key: ${STRIPE_API_KEY}  # pk_live_... en producción
-
+    key: ${STRIPE_API_KEY}        # ⚠️ MISMO valor que STRIPE_SECRET_KEY (sk_live_51...)
   webhook:
-    secret: ${STRIPE_WEBHOOK_SECRET}  # whsec_... del webhook en producción
-
+    secret: ${STRIPE_WEBHOOK_SECRET}  # whsec_... → Stripe Dashboard > Webhooks
   success:
     url: ${FRONTEND_URL}/payment/success
-
   cancel:
     url: ${FRONTEND_URL}/payment/cancel
-
+  # ── Planes base ─────────────────────────────────────────────────────────────
   price:
-    basico: ${STRIPE_PRICE_BASICO}
-    profesional: ${STRIPE_PRICE_PROFESIONAL}
-    premium: ${STRIPE_PRICE_PREMIUM}
+    base:     ${STRIPE_PRICE_BASE}     # price_... Plan Base ($299 MXN/mes)
+    completo: ${STRIPE_PRICE_COMPLETO} # price_... Plan Completo ($1,199 MXN/mes)
+  # ── Módulos del marketplace ──────────────────────────────────────────────────
+  modulos:
+    email-recordatorios: ${STRIPE_PRICE_MODULO_EMAIL_RECORDATORIOS}  # $199/mes
+    sms-whatsapp:        ${STRIPE_PRICE_MODULO_SMS_WHATSAPP}         # $349/mes
+    cobros-online:       ${STRIPE_PRICE_MODULO_COBROS_ONLINE}        # $349/mes
+    reportes-avanzados:  ${STRIPE_PRICE_MODULO_REPORTES_AVANZADOS}   # $249/mes
+    usuarios-extra:      ${STRIPE_PRICE_MODULO_USUARIOS_EXTRA}       # $149/mes
+    multi-sucursal:      ${STRIPE_PRICE_MODULO_MULTI_SUCURSAL}       # $399/mes
+    branding-email:      ${STRIPE_PRICE_MODULO_BRANDING_EMAIL}       # $99/mes
+    citas-extra:         ${STRIPE_PRICE_MODULO_CITAS_EXTRA}          # $99/mes (+100 citas)
+    servicios-extra:     ${STRIPE_PRICE_MODULO_SERVICIOS_EXTRA}      # $79/mes (+8 servicios)
 
 # ============================================================================
 # TWILIO - SMS/WhatsApp (DESHABILITADO POR AHORA)
