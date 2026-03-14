@@ -22,10 +22,16 @@ public class ModuloNegocioDTO {
     private String descripcion;
     private BigDecimal precioMensual;
 
-    /** true si el negocio tiene este módulo activo */
+    /** true si el módulo está activo (comprado individualmente o incluido en plan) */
     private boolean activado;
 
+    /** true si el módulo está activo por estar incluido en el Plan COMPLETO (no comprado por separado) */
+    private boolean incluidoEnPlan;
+
     private LocalDateTime fechaActivacion;
+
+    /** Fecha en que se canceló el módulo, null si sigue activo */
+    private LocalDateTime fechaCancelacion;
 
     /** ID de suscripción Stripe que factura este módulo, null si no está activo */
     private String stripeSubscriptionId;

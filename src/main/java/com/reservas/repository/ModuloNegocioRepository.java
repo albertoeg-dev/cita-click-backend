@@ -21,4 +21,11 @@ public interface ModuloNegocioRepository extends JpaRepository<ModuloNegocio, UU
 
     @Query("SELECT mn FROM ModuloNegocio mn JOIN FETCH mn.modulo WHERE mn.negocio.id = :negocioId AND mn.activo = true")
     List<ModuloNegocio> findActivosConModulo(@Param("negocioId") UUID negocioId);
+
+    /**
+     * Historial completo (activos + cancelados) ordenado por fecha de activación descendente.
+     * Usado en la vista de historial de compras del negocio.
+     */
+    @Query("SELECT mn FROM ModuloNegocio mn JOIN FETCH mn.modulo WHERE mn.negocio.id = :negocioId ORDER BY mn.fechaActivacion DESC")
+    List<ModuloNegocio> findByNegocioIdOrderByFechaActivacionDesc(@Param("negocioId") UUID negocioId);
 }

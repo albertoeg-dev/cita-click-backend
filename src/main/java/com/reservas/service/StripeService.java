@@ -61,20 +61,19 @@ public class StripeService {
     @Value("${stripe.cancel.url}")
     private String cancelUrl;
 
-    @Value("${stripe.price.basico}")
-    private String priceIdBasico;
+    @Value("${stripe.price.base}")
+    private String priceIdBase;
 
-    @Value("${stripe.price.profesional}")
-    private String priceIdProfesional;
-
-    @Value("${stripe.price.premium}")
-    private String priceIdPremium;
+    @Value("${stripe.price.completo}")
+    private String priceIdCompleto;
 
     // Precios en MXN (centavos)
     private static final Map<String, Long> PLAN_PRICES = Map.of(
-            "basico", 29900L,        // $299.00 MXN
-            "profesional", 69900L,   // $699.00 MXN
-            "premium", 129900L       // $1,299.00 MXN
+            "base",     29900L,    // $299.00 MXN
+            "completo", 119900L,   // $1,199.00 MXN
+            // aliases legacy
+            "basico",   29900L,
+            "premium",  119900L
     );
 
     @PostConstruct
@@ -533,9 +532,8 @@ public class StripeService {
      */
     private String getPriceIdForPlan(String plan) {
         return switch (plan.toLowerCase()) {
-            case "basico" -> priceIdBasico;
-            case "profesional" -> priceIdProfesional;
-            case "premium" -> priceIdPremium;
+            case "base", "basico"                    -> priceIdBase;
+            case "completo", "bundle", "premium"     -> priceIdCompleto;
             default -> throw new IllegalArgumentException("Plan inválido: " + plan);
         };
     }

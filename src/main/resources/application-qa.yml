@@ -82,22 +82,38 @@ google:
 
 # ============================================================================
 # STRIPE - Usar SIEMPRE claves TEST en QA (sk_test_... / pk_test_...)
+# ----------------------------------------------------------------------------
+# ⚠️  secret.key y api.key deben tener el MISMO valor (sk_test_...).
+#
+# PLANES: 2 productos en Stripe TEST.
+# MÓDULOS: 9 productos en Stripe TEST, uno por módulo.
 # ============================================================================
 stripe:
   secret:
-    key: ${STRIPE_SECRET_KEY}
+    key: ${STRIPE_SECRET_KEY}     # sk_test_51...
   api:
-    key: ${STRIPE_API_KEY}
+    key: ${STRIPE_API_KEY}        # ⚠️ MISMO valor que STRIPE_SECRET_KEY
   webhook:
-    secret: ${STRIPE_WEBHOOK_SECRET}
+    secret: ${STRIPE_WEBHOOK_SECRET}  # whsec_... → Stripe Dashboard > Webhooks (TEST)
   success:
     url: ${FRONTEND_URL}/payment/success
   cancel:
     url: ${FRONTEND_URL}/payment/cancel
+  # ── Planes base ─────────────────────────────────────────────────────────────
   price:
-    basico: ${STRIPE_PRICE_BASICO}
-    profesional: ${STRIPE_PRICE_PROFESIONAL}
-    premium: ${STRIPE_PRICE_PREMIUM}
+    base:     ${STRIPE_PRICE_BASE}     # price_... Plan Base TEST ($299 MXN/mes)
+    completo: ${STRIPE_PRICE_COMPLETO} # price_... Plan Completo TEST ($1,199 MXN/mes)
+  # ── Módulos del marketplace ──────────────────────────────────────────────────
+  modulos:
+    email-recordatorios: ${STRIPE_PRICE_MODULO_EMAIL_RECORDATORIOS}  # $199/mes
+    sms-whatsapp:        ${STRIPE_PRICE_MODULO_SMS_WHATSAPP}         # $349/mes
+    cobros-online:       ${STRIPE_PRICE_MODULO_COBROS_ONLINE}        # $349/mes
+    reportes-avanzados:  ${STRIPE_PRICE_MODULO_REPORTES_AVANZADOS}   # $249/mes
+    usuarios-extra:      ${STRIPE_PRICE_MODULO_USUARIOS_EXTRA}       # $149/mes
+    multi-sucursal:      ${STRIPE_PRICE_MODULO_MULTI_SUCURSAL}       # $399/mes
+    branding-email:      ${STRIPE_PRICE_MODULO_BRANDING_EMAIL}       # $99/mes
+    citas-extra:         ${STRIPE_PRICE_MODULO_CITAS_EXTRA}          # $99/mes (+100 citas)
+    servicios-extra:     ${STRIPE_PRICE_MODULO_SERVICIOS_EXTRA}      # $79/mes (+8 servicios)
 
 # ============================================================================
 # RESEND - Email
