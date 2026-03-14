@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -227,6 +228,20 @@ public class ModuloService {
                 .map(modulo -> {
                     ModuloNegocio mn = activosMap.get(modulo.getClave());
                     boolean activado = esCompleto || mn != null;
+
+                    // Calcular próxima fecha de cobro para módulos comprados individualmente.
+                    // Lógica: desde fechaActivacion, avanzar de mes en mes hasta superar hoy.
+                    LocalDate proximaFechaCobro = null;
+                    if (mn != null && mn.isActivo() && mn.getFechaActivacion() != null) {
+                        LocalDate activacion = mn.getFechaActivacion().toLocalDate();
+                        LocalDate hoy = LocalDate.now();
+                        LocalDate siguiente = activacion;
+                        while (!siguiente.isAfter(hoy)) {
+                            siguiente = siguiente.plusMonths(1);
+                        }
+                        proximaFechaCobro = siguiente;
+                    }
+
                     return ModuloNegocioDTO.builder()
                             .moduloId(modulo.getId())
                             .clave(modulo.getClave())
@@ -238,6 +253,7 @@ public class ModuloService {
                             .fechaActivacion(mn != null ? mn.getFechaActivacion() : null)
                             .fechaCancelacion(mn != null ? mn.getFechaCancelacion() : null)
                             .stripeSubscriptionId(mn != null ? mn.getStripeSubscriptionId() : null)
+                            .proximaFechaCobro(proximaFechaCobro)
                             .build();
                 })
                 .collect(Collectors.toList());

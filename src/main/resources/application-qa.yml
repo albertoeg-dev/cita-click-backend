@@ -2,7 +2,11 @@
 # CONFIGURACIÓN DE QA - CITA CLICK
 # ============================================================================
 # Activar con: SPRING_PROFILES_ACTIVE=qa
+# Local:       ./mvnw spring-boot:run -Dspring-boot.run.profiles=qa
 # Desplegado en DO App Platform (QA) apuntando a schema ccdiaq
+# Variables de entorno requeridas: DB_PASSWORD, JWT_SECRET, STRIPE_SECRET_KEY,
+#   STRIPE_API_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_BASE, STRIPE_PRICE_COMPLETO,
+#   STRIPE_PRICE_MODULO_*, RESEND_API_KEY
 # ============================================================================
 
 spring:
@@ -78,7 +82,7 @@ jwt:
 # ============================================================================
 google:
   client:
-    id: ${GOOGLE_CLIENT_ID:959341914970-esbnod0d1mhg4u1m8cae5q0g8knepnmv.apps.googleusercontent.com}
+    id: ${GOOGLE_CLIENT_ID:742827122597-o8d36rdpedkb42c8t2m3onif2hun0b4l.apps.googleusercontent.com}
 
 # ============================================================================
 # STRIPE - Usar SIEMPRE claves TEST en QA (sk_test_... / pk_test_...)
@@ -96,9 +100,9 @@ stripe:
   webhook:
     secret: ${STRIPE_WEBHOOK_SECRET}  # whsec_... → Stripe Dashboard > Webhooks (TEST)
   success:
-    url: ${FRONTEND_URL}/payment/success
+    url: ${FRONTEND_URL:http://localhost:5173}/payment/success
   cancel:
-    url: ${FRONTEND_URL}/payment/cancel
+    url: ${FRONTEND_URL:http://localhost:5173}/payment/cancel
   # ── Planes base ─────────────────────────────────────────────────────────────
   price:
     base:     ${STRIPE_PRICE_BASE}     # price_... Plan Base TEST ($299 MXN/mes)
@@ -154,25 +158,27 @@ twilio:
     number: ${TWILIO_WHATSAPP_NUMBER:}
 
 # ============================================================================
-# RATE LIMITING - Habilitado en QA (igual que prod)
+# RATE LIMITING - Deshabilitado localmente, habilitado en DO QA
 # ============================================================================
 rate:
   limit:
-    enabled: ${RATE_LIMIT_ENABLED:true}
+    enabled: ${RATE_LIMIT_ENABLED:false}
 
 # ============================================================================
-# FRONTEND URL
+# COOKIE & CORS
+# Local HTTP:  COOKIE_SECURE=false, COOKIE_SAME_SITE=Strict (Vite proxy)
+# DO QA HTTPS: COOKIE_SECURE=true,  COOKIE_SAME_SITE=None  (cross-origin)
 # ============================================================================
 frontend:
-  url: ${FRONTEND_URL}
+  url: ${FRONTEND_URL:http://localhost:5173}
 
 app:
   frontend:
-    url: ${FRONTEND_URL}
-    extra-origins: ${FRONTEND_EXTRA_ORIGINS:}
+    url: ${FRONTEND_URL:http://localhost:5173}
+    extra-origins: ${FRONTEND_EXTRA_ORIGINS:http://localhost:5174}
   cookie:
-    secure: true      # HTTPS en DO App Platform
-    same-site: None   # Cross-site entre subdominios ondigitalocean.app (PSL)
+    secure: ${COOKIE_SECURE:false}
+    same-site: ${COOKIE_SAME_SITE:Strict}
   admin:
     secret-key: ${ADMIN_SECRET_KEY}
 
