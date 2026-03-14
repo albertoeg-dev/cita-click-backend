@@ -3,6 +3,7 @@ package com.reservas.controller;
 import com.reservas.billing.service.SubscriptionService;
 import com.reservas.payments.service.ConnectAccountService;
 import com.reservas.payments.service.PaymentService;
+import com.reservas.service.ModuloActivacionService;
 import com.reservas.service.StripeService;
 import com.reservas.service.SuscripcionService;
 import com.stripe.exception.SignatureVerificationException;
@@ -38,6 +39,7 @@ public class StripeWebhookController {
     private final ConnectAccountService connectAccountService;
     private final SubscriptionService subscriptionService;
     private final SuscripcionService suscripcionService;
+    private final ModuloActivacionService moduloActivacionService;
 
     @Value("${stripe.webhook.secret}")
     private String webhookSecret;
@@ -135,9 +137,25 @@ public class StripeWebhookController {
 
         // Procesar según el modo de la sesión
         if ("subscription".equals(session.getMode())) {
-            // Es una suscripción - marcar trial como usado
-            log.info("Procesando suscripción - Subscription ID: {}", session.getSubscription());
-            stripeService.procesarSuscripcionCreada(session);
+            String tipo = session.getMetadata() != null ? session.getMetadata().get("tipo") : null;
+
+            if ("modulo".equals(tipo)) {
+                // Es la activación de un módulo del marketplace
+                String clave = session.getMetadata().get("modulo_clave");
+                String negocioIdStr = session.getMetadata().get("negocio_id");
+                log.info("Activando módulo '{}' para negocio: {}", clave, negocioIdStr);
+                if (clave != null && negocioIdStr != null) {
+                    moduloActivacionService.activarModulo(
+                            java.util.UUID.fromString(negocioIdStr),
+                            clave,
+                            session.getSubscription()
+                    );
+                }
+            } else {
+                // Es una suscripción de plan — marcar trial como usado
+                log.info("Procesando suscripción de plan - Subscription ID: {}", session.getSubscription());
+                stripeService.procesarSuscripcionCreada(session);
+            }
         } else if ("paid".equals(session.getPaymentStatus())) {
             // Es un pago único
             String sessionId = session.getId();

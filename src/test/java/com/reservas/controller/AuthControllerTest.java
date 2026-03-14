@@ -8,7 +8,9 @@ import com.reservas.dto.response.UserResponse;
 import com.reservas.service.AuthService;
 import com.reservas.service.RateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +39,9 @@ class AuthControllerTest {
 
     @Mock
     private HttpServletRequest httpServletRequest;
+
+    @Mock
+    private HttpServletResponse httpServletResponse;
 
     @InjectMocks
     private AuthController authController;
@@ -84,7 +89,7 @@ class AuthControllerTest {
         when(authService.registrar(any(RegisterRequest.class), any(HttpServletRequest.class))).thenReturn(loginResponse);
 
         // Act
-        ResponseEntity<ApiResponse<?>> response = authController.register(registerRequest, httpServletRequest);
+        ResponseEntity<ApiResponse<?>> response = authController.register(registerRequest, httpServletRequest, httpServletResponse);
 
         // Assert
         assertNotNull(response);
@@ -103,7 +108,7 @@ class AuthControllerTest {
                 .thenThrow(new RuntimeException("Email ya existe"));
 
         // Act
-        ResponseEntity<ApiResponse<?>> response = authController.register(registerRequest, httpServletRequest);
+        ResponseEntity<ApiResponse<?>> response = authController.register(registerRequest, httpServletRequest, httpServletResponse);
 
         // Assert
         assertNotNull(response);
@@ -117,12 +122,13 @@ class AuthControllerTest {
     @DisplayName("POST /api/auth/login - Debe autenticar usuario correctamente")
     void testLogin_Success() {
         // Arrange
+        ReflectionTestUtils.setField(authController, "rateLimitEnabled", true);
         when(rateLimitService.tryConsume(anyString())).thenReturn(true);
         when(httpServletRequest.getRemoteAddr()).thenReturn("127.0.0.1");
         when(authService.login(any(LoginRequest.class))).thenReturn(loginResponse);
 
         // Act
-        ResponseEntity<ApiResponse<?>> response = authController.login(loginRequest, httpServletRequest);
+        ResponseEntity<ApiResponse<?>> response = authController.login(loginRequest, httpServletRequest, httpServletResponse);
 
         // Assert
         assertNotNull(response);
@@ -142,7 +148,7 @@ class AuthControllerTest {
                 .thenThrow(new RuntimeException("Credenciales inválidas"));
 
         // Act
-        ResponseEntity<ApiResponse<?>> response = authController.login(loginRequest, httpServletRequest);
+        ResponseEntity<ApiResponse<?>> response = authController.login(loginRequest, httpServletRequest, httpServletResponse);
 
         // Assert
         assertNotNull(response);
@@ -156,7 +162,7 @@ class AuthControllerTest {
     @DisplayName("POST /api/auth/logout - Debe cerrar sesión correctamente")
     void testLogout() {
         // Act
-        ResponseEntity<ApiResponse<?>> response = authController.logout();
+        ResponseEntity<ApiResponse<?>> response = authController.logout(httpServletResponse);
 
         // Assert
         assertNotNull(response);

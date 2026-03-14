@@ -5,7 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.reservas.dto.ModuloNegocioDTO;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO para enviar información del estado de suscripción al cliente.
@@ -28,6 +30,7 @@ public class SuscripcionInfoResponse {
     private boolean necesitaNotificacion;
     private boolean onboardingCompleto;
     private String mensaje;                     // Mensaje descriptivo del estado
+    private List<ModuloNegocioDTO> modulosActivos; // Módulos activos del negocio
 
     /**
      * Genera un mensaje descriptivo según el estado de la suscripción

@@ -4,6 +4,7 @@ import com.reservas.dto.SuscripcionInfoResponse;
 import com.reservas.entity.Negocio;
 import com.reservas.entity.Usuario;
 import com.reservas.repository.UsuarioRepository;
+import com.reservas.service.ModuloService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SuscripcionInfoService {
 
     private final UsuarioRepository usuarioRepository;
+    private final ModuloService moduloService;
 
     /**
      * Obtiene la información completa de suscripción del usuario.
@@ -58,6 +60,7 @@ public class SuscripcionInfoService {
                         ? (int) negocio.diasRestantesVencimiento() : null)
                 .necesitaNotificacion(negocio.necesitaNotificacionPrueba() || negocio.necesitaNotificacionVencimiento())
                 .onboardingCompleto(negocio.isOnboardingCompleto())
+                .modulosActivos(moduloService.listarModulosConEstado(negocio.getId()))
                 .build();
 
         // Generar mensaje descriptivo
