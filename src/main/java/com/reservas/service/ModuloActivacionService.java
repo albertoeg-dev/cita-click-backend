@@ -109,6 +109,45 @@ public class ModuloActivacionService {
         metadata.put("negocio_id", negocio.getId().toString());
         metadata.put("usuario_id", usuario.getId().toString());
 
+        // Construir line item: usar Price ID pre-creado si está configurado,
+        // de lo contrario usar price_data dinámico como fallback.
+        SessionCreateParams.LineItem lineItem;
+        String stripePriceId = modulo.getStripePriceId();
+
+        if (stripePriceId != null && !stripePriceId.isBlank()) {
+            // ── Opción A: producto pre-creado en Stripe (recomendado) ──────────
+            // Genera registros limpios en el Stripe Dashboard por módulo.
+            log.info("[ModuloActivacion] Usando Price ID '{}' para módulo '{}'", stripePriceId, clave);
+            lineItem = SessionCreateParams.LineItem.builder()
+                    .setPrice(stripePriceId)
+                    .setQuantity(1L)
+                    .build();
+        } else {
+            // ── Opción B: price_data dinámico (fallback si no hay Price ID) ───
+            // Útil durante desarrollo antes de configurar productos en Stripe.
+            log.warn("[ModuloActivacion] Módulo '{}' sin Price ID — usando price_data dinámico", clave);
+            lineItem = SessionCreateParams.LineItem.builder()
+                    .setQuantity(1L)
+                    .setPriceData(
+                            SessionCreateParams.LineItem.PriceData.builder()
+                                    .setCurrency("mxn")
+                                    .setUnitAmount(precioCentavos)
+                                    .setProductData(
+                                            SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                    .setName(modulo.getNombre())
+                                                    .setDescription(modulo.getDescripcion())
+                                                    .build()
+                                    )
+                                    .setRecurring(
+                                            SessionCreateParams.LineItem.PriceData.Recurring.builder()
+                                                    .setInterval(SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH)
+                                                    .build()
+                                    )
+                                    .build()
+                    )
+                    .build();
+        }
+
         try {
             SessionCreateParams params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
@@ -116,28 +155,7 @@ public class ModuloActivacionService {
                     .setSuccessUrl(successUrl + "?session_id={CHECKOUT_SESSION_ID}")
                     .setCancelUrl(cancelUrl)
                     .putAllMetadata(metadata)
-                    .addLineItem(
-                            SessionCreateParams.LineItem.builder()
-                                    .setQuantity(1L)
-                                    .setPriceData(
-                                            SessionCreateParams.LineItem.PriceData.builder()
-                                                    .setCurrency("mxn")
-                                                    .setUnitAmount(precioCentavos)
-                                                    .setProductData(
-                                                            SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                    .setName(modulo.getNombre())
-                                                                    .setDescription(modulo.getDescripcion())
-                                                                    .build()
-                                                    )
-                                                    .setRecurring(
-                                                            SessionCreateParams.LineItem.PriceData.Recurring.builder()
-                                                                    .setInterval(SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH)
-                                                                    .build()
-                                                    )
-                                                    .build()
-                                    )
-                                    .build()
-                    )
+                    .addLineItem(lineItem)
                     .setAutomaticTax(
                             SessionCreateParams.AutomaticTax.builder()
                                     .setEnabled(false)

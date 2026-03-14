@@ -87,4 +87,19 @@ public class ModulosController {
                 .message("Módulo cancelado exitosamente")
                 .build());
     }
+
+    @GetMapping("/historial")
+    @Operation(summary = "Historial completo de módulos (activos y cancelados) del negocio",
+               description = "Devuelve todos los módulos que el negocio ha contratado alguna vez, " +
+                             "incluyendo fecha de activación, cancelación y el ID de suscripción Stripe.")
+    public ResponseEntity<ApiResponse<List<ModuloNegocioDTO>>> obtenerHistorial(Authentication auth) {
+        String email = auth.getName();
+        log.info("[ModulosController] Historial de módulos para: {}", email);
+        List<ModuloNegocioDTO> historial = moduloService.listarHistorialModulos(email);
+        return ResponseEntity.ok(ApiResponse.<List<ModuloNegocioDTO>>builder()
+                .success(true)
+                .message("Historial de módulos obtenido exitosamente")
+                .data(historial)
+                .build());
+    }
 }

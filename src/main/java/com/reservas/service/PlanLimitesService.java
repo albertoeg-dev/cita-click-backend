@@ -18,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+// Claves de módulos de expansión (sincronizadas con ModuloService)
+// citas_extra    → +100 citas/mes
+// servicios_extra → +8 servicios
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,69 +33,62 @@ public class PlanLimitesService {
     private final ClienteRepository clienteRepository;
     private final CitaRepository citaRepository;
     private final ServicioRepository servicioRepository;
+    private final ModuloNegocioRepository moduloNegocioRepository;
+
+    // Incrementos por módulo de expansión
+    private static final int CITAS_POR_MODULO_EXTRA    = 100;
+    private static final int SERVICIOS_POR_MODULO_EXTRA = 8;
 
     /**
-     * Inicializa los límites de los planes en la base de datos
-     * NOTA: La inicialización principal se hace vía migración V9__update_plan_limites.sql
-     * Este método solo verifica que existan y los crea si faltan (fallback)
+     * Inicializa los límites de los planes en la base de datos.
+     *
+     * Planes activos:
+     *   BASE     → 1 usuario, clientes ilimitados, 200 citas/mes, 8 servicios
+     *              Módulos expandibles: citas_extra (+100/mes), servicios_extra (+8)
+     *   COMPLETO → 1 usuario, ilimitado en todo, todos los módulos incluidos
+     *
+     * Los planes legacy (BASICO, PROFESIONAL, PREMIUM) se conservan en BD
+     * pero no se crean aquí. fromCodigo() los redirige a BASE o COMPLETO.
      */
     @PostConstruct
     @Transactional
     public void inicializarLimites() {
         log.info("[PlanLimitesService] Verificando límites de planes...");
 
-        // PLAN BÁSICO
-        if (!planLimitesRepository.existsByTipoPlan(TipoPlan.BASICO)) {
-            PlanLimites basico = PlanLimites.builder()
-                    .tipoPlan(TipoPlan.BASICO)
+        // PLAN BASE — funcionalidades controladas 100% por módulos del marketplace
+        if (!planLimitesRepository.existsByTipoPlan(TipoPlan.BASE)) {
+            PlanLimites base = PlanLimites.builder()
+                    .tipoPlan(TipoPlan.BASE)
                     .maxUsuarios(1)
-                    .maxClientes(50)
-                    .maxCitasMes(100)
-                    .maxServicios(5)
-                    .emailRecordatoriosHabilitado(false)
-                    .smsWhatsappHabilitado(false)
-                    .reportesAvanzadosHabilitado(false)
-                    .personalizacionEmailHabilitado(false)
+                    .maxClientes(-1)   // Ilimitado
+                    .maxCitasMes(200)  // Expandible con módulo citas_extra (+100/mes)
+                    .maxServicios(8)   // Expandible con módulo servicios_extra (+8)
+                    .emailRecordatoriosHabilitado(false)   // Módulo email_recordatorios
+                    .smsWhatsappHabilitado(false)          // Módulo sms_whatsapp
+                    .reportesAvanzadosHabilitado(false)    // Módulo reportes_avanzados
+                    .personalizacionEmailHabilitado(false) // Módulo branding_email
                     .soportePrioritario(false)
                     .build();
-            planLimitesRepository.save(basico);
-            log.info("[PlanLimitesService] Plan BÁSICO creado");
+            planLimitesRepository.save(base);
+            log.info("[PlanLimitesService] Plan BASE creado");
         }
 
-        // PLAN PROFESIONAL
-        if (!planLimitesRepository.existsByTipoPlan(TipoPlan.PROFESIONAL)) {
-            PlanLimites profesional = PlanLimites.builder()
-                    .tipoPlan(TipoPlan.PROFESIONAL)
-                    .maxUsuarios(3)
-                    .maxClientes(100)
-                    .maxCitasMes(200)
-                    .maxServicios(10)
-                    .emailRecordatoriosHabilitado(true) // 200 envíos/mes
-                    .smsWhatsappHabilitado(false)
-                    .reportesAvanzadosHabilitado(true)
-                    .personalizacionEmailHabilitado(false)
-                    .soportePrioritario(false)
-                    .build();
-            planLimitesRepository.save(profesional);
-            log.info("[PlanLimitesService] Plan PROFESIONAL creado");
-        }
-
-        // PLAN PREMIUM
-        if (!planLimitesRepository.existsByTipoPlan(TipoPlan.PREMIUM)) {
-            PlanLimites premium = PlanLimites.builder()
-                    .tipoPlan(TipoPlan.PREMIUM)
-                    .maxUsuarios(10)
-                    .maxClientes(-1)  // Ilimitado
-                    .maxCitasMes(-1)  // Ilimitado
-                    .maxServicios(-1) // Ilimitado
-                    .emailRecordatoriosHabilitado(true) // Envíos ilimitados
-                    .smsWhatsappHabilitado(false)
+        // PLAN COMPLETO — todos los módulos incluidos, sin límites de uso
+        if (!planLimitesRepository.existsByTipoPlan(TipoPlan.COMPLETO)) {
+            PlanLimites completo = PlanLimites.builder()
+                    .tipoPlan(TipoPlan.COMPLETO)
+                    .maxUsuarios(1)    // Usuario base; adicionales con módulo usuarios_extra
+                    .maxClientes(-1)   // Ilimitado
+                    .maxCitasMes(-1)   // Ilimitado
+                    .maxServicios(-1)  // Ilimitado
+                    .emailRecordatoriosHabilitado(true)
+                    .smsWhatsappHabilitado(true)
                     .reportesAvanzadosHabilitado(true)
                     .personalizacionEmailHabilitado(true)
                     .soportePrioritario(true)
                     .build();
-            planLimitesRepository.save(premium);
-            log.info("[PlanLimitesService] Plan PREMIUM creado");
+            planLimitesRepository.save(completo);
+            log.info("[PlanLimitesService] Plan COMPLETO creado");
         }
 
         log.info("[PlanLimitesService] Verificación de límites completada");
@@ -212,7 +209,8 @@ public class PlanLimitesService {
     }
 
     /**
-     * Valida si se puede agregar una nueva cita este mes
+     * Valida si se puede agregar una nueva cita este mes.
+     * Considera el módulo citas_extra si está activo (+100 citas/mes).
      */
     public void validarLimiteCitasMes(UUID negocioId, TipoPlan tipoPlan) {
         log.info("[PlanLimitesService] Validando límite de citas del mes para negocio: {}, plan: {}", negocioId, tipoPlan);
@@ -224,20 +222,20 @@ public class PlanLimitesService {
             return;
         }
 
+        int limiteEfectivo = calcularLimiteCitasEfectivo(negocioId, limites.getMaxCitasMes());
         UsoNegocio uso = obtenerUsoActual(negocioId);
 
-        if (uso.getTotalCitasMes() >= limites.getMaxCitasMes()) {
-            log.warn("[PlanLimitesService] Límite de citas del mes excedido: {} >= {}",
-                    uso.getTotalCitasMes(), limites.getMaxCitasMes());
-            throw new LimiteExcedidoException("citas este mes", uso.getTotalCitasMes(), limites.getMaxCitasMes());
+        if (uso.getTotalCitasMes() >= limiteEfectivo) {
+            log.warn("[PlanLimitesService] Límite de citas del mes excedido: {} >= {}", uso.getTotalCitasMes(), limiteEfectivo);
+            throw new LimiteExcedidoException("citas este mes", uso.getTotalCitasMes(), limiteEfectivo);
         }
 
-        log.info("[PlanLimitesService] Validación exitosa: {} / {} citas este mes",
-                uso.getTotalCitasMes(), limites.getMaxCitasMes());
+        log.info("[PlanLimitesService] Validación exitosa: {} / {} citas este mes", uso.getTotalCitasMes(), limiteEfectivo);
     }
 
     /**
-     * Valida si se puede agregar un nuevo servicio
+     * Valida si se puede agregar un nuevo servicio.
+     * Considera el módulo servicios_extra si está activo (+8 servicios).
      */
     public void validarLimiteServicios(UUID negocioId, TipoPlan tipoPlan) {
         log.info("[PlanLimitesService] Validando límite de servicios para negocio: {}, plan: {}", negocioId, tipoPlan);
@@ -249,16 +247,39 @@ public class PlanLimitesService {
             return;
         }
 
+        int limiteEfectivo = calcularLimiteServiciosEfectivo(negocioId, limites.getMaxServicios());
         long serviciosActuales = servicioRepository.countByNegocioId(negocioId);
 
-        if (serviciosActuales >= limites.getMaxServicios()) {
-            log.warn("[PlanLimitesService] Límite de servicios excedido: {} >= {}",
-                    serviciosActuales, limites.getMaxServicios());
-            throw new LimiteExcedidoException("servicios", (int) serviciosActuales, limites.getMaxServicios());
+        if (serviciosActuales >= limiteEfectivo) {
+            log.warn("[PlanLimitesService] Límite de servicios excedido: {} >= {}", serviciosActuales, limiteEfectivo);
+            throw new LimiteExcedidoException("servicios", (int) serviciosActuales, limiteEfectivo);
         }
 
-        log.info("[PlanLimitesService] Validación exitosa: {} / {} servicios",
-                serviciosActuales, limites.getMaxServicios());
+        log.info("[PlanLimitesService] Validación exitosa: {} / {} servicios", serviciosActuales, limiteEfectivo);
+    }
+
+    // ── Helpers: límites efectivos considerando módulos de expansión ─────────
+
+    /**
+     * Calcula el límite real de citas/mes sumando módulo citas_extra si está activo.
+     * Si el base es -1 (ilimitado), devuelve -1 directamente.
+     */
+    public int calcularLimiteCitasEfectivo(UUID negocioId, int limiteBase) {
+        if (limiteBase == -1) return -1;
+        boolean tieneCitasExtra = moduloNegocioRepository
+                .existsByNegocioIdAndModuloClaveAndActivoTrue(negocioId, "citas_extra");
+        return limiteBase + (tieneCitasExtra ? CITAS_POR_MODULO_EXTRA : 0);
+    }
+
+    /**
+     * Calcula el límite real de servicios sumando módulo servicios_extra si está activo.
+     * Si el base es -1 (ilimitado), devuelve -1 directamente.
+     */
+    public int calcularLimiteServiciosEfectivo(UUID negocioId, int limiteBase) {
+        if (limiteBase == -1) return -1;
+        boolean tieneServiciosExtra = moduloNegocioRepository
+                .existsByNegocioIdAndModuloClaveAndActivoTrue(negocioId, "servicios_extra");
+        return limiteBase + (tieneServiciosExtra ? SERVICIOS_POR_MODULO_EXTRA : 0);
     }
 
     /**
@@ -375,11 +396,15 @@ public class PlanLimitesService {
         UsoNegocio uso = obtenerUsoActual(negocioId);
         PlanLimites limites = obtenerLimites(plan);
 
-        // Calcular porcentajes
+        // Límites efectivos: base del plan + módulos de expansión activos
+        int limiteCitasEfectivo    = calcularLimiteCitasEfectivo(negocioId, limites.getMaxCitasMes());
+        int limiteServiciosEfectivo = calcularLimiteServiciosEfectivo(negocioId, limites.getMaxServicios());
+
+        // Calcular porcentajes con límites efectivos
         Double porcentajeUsuarios = UsoNegocioDTO.calcularPorcentaje(uso.getTotalUsuarios(), limites.getMaxUsuarios());
         Double porcentajeClientes = UsoNegocioDTO.calcularPorcentaje(uso.getTotalClientes(), limites.getMaxClientes());
-        Double porcentajeCitasMes = UsoNegocioDTO.calcularPorcentaje(uso.getTotalCitasMes(), limites.getMaxCitasMes());
-        Double porcentajeServicios = UsoNegocioDTO.calcularPorcentaje(uso.getTotalServicios(), limites.getMaxServicios());
+        Double porcentajeCitasMes = UsoNegocioDTO.calcularPorcentaje(uso.getTotalCitasMes(), limiteCitasEfectivo);
+        Double porcentajeServicios = UsoNegocioDTO.calcularPorcentaje(uso.getTotalServicios(), limiteServiciosEfectivo);
 
         return UsoNegocioDTO.builder()
                 .periodo(uso.getPeriodo())
@@ -389,8 +414,8 @@ public class PlanLimitesService {
                 .totalServicios(uso.getTotalServicios())
                 .limiteUsuarios(limites.getMaxUsuarios())
                 .limiteClientes(limites.getMaxClientes())
-                .limiteCitasMes(limites.getMaxCitasMes())
-                .limiteServicios(limites.getMaxServicios())
+                .limiteCitasMes(limiteCitasEfectivo)      // efectivo (con citas_extra si aplica)
+                .limiteServicios(limiteServiciosEfectivo) // efectivo (con servicios_extra si aplica)
                 .porcentajeUsuarios(porcentajeUsuarios)
                 .porcentajeClientes(porcentajeClientes)
                 .porcentajeCitasMes(porcentajeCitasMes)
