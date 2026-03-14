@@ -137,6 +137,15 @@
 			<version>2.15.1</version>
 		</dependency>
 
+		<!-- Cloud SQL Connector para Google Cloud Run
+		     Permite conectar a Cloud SQL via Unix socket seguro (sin exponer IP pública).
+		     La URL JDBC usa: jdbc:postgresql:///DB?socketFactory=...&cloudSqlInstance=PROJECT:REGION:INSTANCE -->
+		<dependency>
+			<groupId>com.google.cloud.sql</groupId>
+			<artifactId>postgres-socket-factory</artifactId>
+			<version>1.18.0</version>
+		</dependency>
+
 		<!-- Google OAuth2 -->
 		<dependency>
 			<groupId>com.google.api-client</groupId>
