@@ -126,61 +126,39 @@ public class StripeController {
 
         List<Map<String, Object>> planes = List.of(
                 Map.of(
-                        "id", "basico",
-                        "nombre", "Básico",
+                        "id", "base",
+                        "nombre", "Plan Base",
                         "precio", 299,
                         "moneda", "MXN",
-                        "descripcion", "Para freelancers y autónomos",
+                        "descripcion", "Para cualquier negocio de servicios",
                         "caracteristicas", List.of(
-                                "1 usuario",
-                                "Hasta 50 clientes",
-                                "Hasta 100 citas/mes",
-                                "Hasta 5 servicios",
-                                "Gestión de citas y clientes",
-                                "Dashboard con métricas básicas",
-                                "Calendario visual",
-                                "Horarios de trabajo",
-                                "Disponibilidad automática"
+                                "Hasta 200 citas/mes (expandible)",
+                                "Hasta 8 servicios (expandible)",
+                                "Clientes ilimitados",
+                                "Calendario visual interactivo",
+                                "Perfil 360 del cliente",
+                                "Dashboard con métricas en tiempo real",
+                                "Citas recurrentes",
+                                "Soporte por email incluido"
                         )
                 ),
                 Map.of(
-                        "id", "profesional",
-                        "nombre", "Profesional",
-                        "precio", 699,
+                        "id", "completo",
+                        "nombre", "Bundle Completo",
+                        "precio", 1199,
                         "moneda", "MXN",
-                        "descripcion", "Para pequeños negocios en crecimiento",
+                        "descripcion", "Todos los módulos, un solo precio",
                         "caracteristicas", List.of(
-                                "Todo lo del Plan Básico",
-                                "Hasta 3 usuarios con roles",
-                                "Hasta 100 clientes",
-                                "Hasta 200 citas/mes",
-                                "Hasta 10 servicios",
-                                "Citas recurrentes",
-                                "Perfil 360 del cliente",
-                                "Recordatorios automáticos (200 emails/mes)",
-                                "Reportes avanzados con exportación PDF/Excel",
-                                "Gestión de usuarios y permisos"
+                                "Plan Base incluido",
+                                "Recordatorios Email + SMS/WhatsApp",
+                                "Cobros en línea (Stripe Connect)",
+                                "Reportes avanzados PDF/Excel",
+                                "1 usuario adicional incluido",
+                                "Branding de emails",
+                                "Citas y servicios ilimitados",
+                                "Soporte prioritario"
                         ),
                         "popular", true
-                ),
-                Map.of(
-                        "id", "premium",
-                        "nombre", "Premium",
-                        "precio", 1299,
-                        "moneda", "MXN",
-                        "descripcion", "Para empresas y cadenas",
-                        "caracteristicas", List.of(
-                                "Todo lo del Plan Profesional",
-                                "Hasta 10 usuarios",
-                                "Clientes ILIMITADOS",
-                                "Citas ILIMITADAS",
-                                "Servicios ILIMITADOS",
-                                "Recordatorios automáticos (emails ilimitados)",
-                                "Pagos por servicios (Stripe Connect)",
-                                "Gestión avanzada de permisos",
-                                "Multi-sucursal",
-                                "Soporte prioritario 24/7"
-                        )
                 )
         );
 
