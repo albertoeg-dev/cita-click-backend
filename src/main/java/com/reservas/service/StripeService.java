@@ -245,7 +245,7 @@ public class StripeService {
                         if (clave != null && negocioIdStr != null && subscriptionId != null) {
                             log.info("[Stripe] Activando módulo '{}' desde session-status (respaldo webhook)", clave);
                             moduloActivacionService.activarModulo(
-                                    UUID.fromString(negocioIdStr), clave, subscriptionId);
+                                    UUID.fromString(negocioIdStr), clave, subscriptionId, sessionId);
                         }
                     } else {
                         // ── Respaldo: activar plan base/completo ──────────────────────
@@ -502,19 +502,27 @@ public class StripeService {
 
     /**
      * Intenta sincronizar un Pago pendiente contra Stripe.
-     * Primero usa el subscriptionId del Negocio (ruta rápida, sin llamada extra a Stripe).
-     * Si no existe, recupera la sesión de checkout para obtener el subscriptionId.
+     *
+     * Para pagos de PLAN: primero usa el subscriptionId del Negocio (ruta rápida).
+     * Para pagos de MÓDULO: los módulos tienen su propia suscripción en Stripe, distinta
+     * a la del plan. No se puede usar negocio.getStripeSubscriptionId() porque devolvería
+     * la suscripción del plan, corrompiendo el registro del módulo. En su lugar se
+     * recupera la sesión de checkout para obtener el subscriptionId correcto.
      */
     private void sincronizarPagoPendiente(Pago pago) {
         try {
-            // Ruta rápida: el Negocio ya tiene el subscription ID guardado
-            String subscriptionId = pago.getNegocio().getStripeSubscriptionId();
-            if (subscriptionId != null) {
-                actualizarPagoDesdeSubscripcion(pago, subscriptionId);
-                return;
+            boolean esModulo = pago.getPlan() != null && pago.getPlan().contains("_");
+
+            if (!esModulo) {
+                // Ruta rápida para pagos de PLAN: el Negocio ya tiene el subscription ID guardado
+                String subscriptionId = pago.getNegocio().getStripeSubscriptionId();
+                if (subscriptionId != null) {
+                    actualizarPagoDesdeSubscripcion(pago, subscriptionId);
+                    return;
+                }
             }
 
-            // Respaldo: recuperar sesión de Stripe para obtener el subscription ID
+            // Para módulos (y planes sin subscriptionId): recuperar sesión de Stripe
             Session session = Session.retrieve(pago.getStripeCheckoutSessionId());
             if ("complete".equals(session.getStatus())
                     && "subscription".equals(session.getMode())

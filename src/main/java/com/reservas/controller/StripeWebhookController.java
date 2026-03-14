@@ -148,7 +148,8 @@ public class StripeWebhookController {
                     moduloActivacionService.activarModulo(
                             java.util.UUID.fromString(negocioIdStr),
                             clave,
-                            session.getSubscription()
+                            session.getSubscription(),
+                            session.getId()
                     );
                 }
             } else {
