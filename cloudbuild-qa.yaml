@@ -1,0 +1,61 @@
+# ============================================
+# CLOUD BUILD - BACKEND QA (Spring Boot)
+# ============================================
+# Trigger: push a test → build + deploy en Cloud Run (qa)
+# Usar este archivo en el trigger de GCP apuntando a la rama 'test'
+#
+# Variables de entorno requeridas en el trigger o en el servicio Cloud Run:
+#   SPRING_PROFILES_ACTIVE=qa
+#   DATABASE_URL, DB_USER, DB_PASSWORD
+#   JWT_SECRET
+#   STRIPE_SECRET_KEY, STRIPE_API_KEY, STRIPE_WEBHOOK_SECRET
+#   STRIPE_PRICE_BASE, STRIPE_PRICE_COMPLETO
+#   STRIPE_PRICE_MODULO_* (9 módulos)
+#   RESEND_API_KEY
+#   ADMIN_SECRET_KEY
+#   GOOGLE_CLIENT_ID
+
+steps:
+  # 1. Construir imagen Docker
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend-qa:$COMMIT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend-qa:latest'
+      - '.'
+    timeout: '1200s'
+
+  # 2. Subir imagen a Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend-qa'
+
+  # 3. Desplegar en Cloud Run (servicio QA)
+  #    --update-env-vars: sobreescribe solo las vars indicadas, las demás
+  #    (secrets de Stripe, DB, JWT, etc.) permanecen configuradas en la consola.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - 'gcloud'
+      - 'run'
+      - 'deploy'
+      - 'citaclick-backend-qa'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend-qa:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--update-env-vars'
+      - 'FRONTEND_URL=https://citaclick-frontend-qa-742827122597.us-central1.run.app,FRONTEND_EXTRA_ORIGINS=https://citaclick-frontend-qa-742827122597.us-central1.run.app'
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cita-click-images/citaclick-backend-qa'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1800s'
