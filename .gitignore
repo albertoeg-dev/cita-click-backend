@@ -38,3 +38,12 @@ logs/
 ### Configuraciones locales (contienen secrets, nunca commitear) ###
 **/application-local.yml
 **/application-dev.yml
+
+### macOS ###
+.DS_Store
+
+### GCP (ya no se usa, migrado a Digital Ocean) ###
+cloudbuild*.yaml
+
+### Archivos de uploads y datos locales ###
+uploads/

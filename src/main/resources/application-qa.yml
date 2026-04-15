@@ -18,8 +18,8 @@ spring:
   # Schema: ccdiaq (cita-click-qa)
   # ============================================================================
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://db-citaclick-do-user-31752426-0.j.db.ondigitalocean.com:25060/defaultdb?currentSchema=ccdiaq&sslmode=require}
-    username: ${DB_USER:MXCCQSAAS}
+    url: ${DATABASE_URL:jdbc:postgresql://db-espejel-studio-dia-prod-do-user-35883971-0.g.db.ondigitalocean.com:25060/db-cita-click-diap?sslmode=require}
+    username: ${DB_USER:MXCCSAAS}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
@@ -94,7 +94,7 @@ google:
 # ============================================================================
 stripe:
   secret:
-    key: ${STRIPE_SECRET_KEY}     # sk_test_51...
+    key: ${STRIPE_SECRET_KEY}     # sk_test_... → Stripe Dashboard (TEST)
   api:
     key: ${STRIPE_API_KEY}        # ⚠️ MISMO valor que STRIPE_SECRET_KEY
   webhook:
@@ -105,19 +105,19 @@ stripe:
     url: ${FRONTEND_URL:http://localhost:5173}/payment/cancel
   # ── Planes base ─────────────────────────────────────────────────────────────
   price:
-    base:     ${STRIPE_PRICE_BASE}     # price_... Plan Base TEST ($299 MXN/mes)
-    completo: ${STRIPE_PRICE_COMPLETO} # price_... Plan Completo TEST ($1,199 MXN/mes)
+    base:     ${STRIPE_PRICE_BASE:price_1T5apaFi0YpItqgcJyUmdFqt}     # price_... Plan Base TEST ($299 MXN/mes)
+    completo: ${STRIPE_PRICE_COMPLETO:price_1T5aqbFi0YpItqgcOq2CJgRK} # price_... Plan Completo TEST ($1,199 MXN/mes)
   # ── Módulos del marketplace ──────────────────────────────────────────────────
   modulos:
-    email-recordatorios: ${STRIPE_PRICE_MODULO_EMAIL_RECORDATORIOS}  # $199/mes
-    sms-whatsapp:        ${STRIPE_PRICE_MODULO_SMS_WHATSAPP}         # $349/mes
-    cobros-online:       ${STRIPE_PRICE_MODULO_COBROS_ONLINE}        # $349/mes
-    reportes-avanzados:  ${STRIPE_PRICE_MODULO_REPORTES_AVANZADOS}   # $249/mes
-    usuarios-extra:      ${STRIPE_PRICE_MODULO_USUARIOS_EXTRA}       # $149/mes
-    multi-sucursal:      ${STRIPE_PRICE_MODULO_MULTI_SUCURSAL}       # $399/mes
-    branding-email:      ${STRIPE_PRICE_MODULO_BRANDING_EMAIL}       # $99/mes
-    citas-extra:         ${STRIPE_PRICE_MODULO_CITAS_EXTRA}          # $99/mes (+100 citas)
-    servicios-extra:     ${STRIPE_PRICE_MODULO_SERVICIOS_EXTRA}      # $79/mes (+8 servicios)
+    email-recordatorios: ${STRIPE_PRICE_MODULO_EMAIL_RECORDATORIOS:price_1TAxYzFi0YpItqgc70pbUn1z}  # $199/mes
+    sms-whatsapp:        ${STRIPE_PRICE_MODULO_SMS_WHATSAPP:price_1TAxZZFi0YpItqgcUOdmmUYx}         # $349/mes
+    cobros-online:       ${STRIPE_PRICE_MODULO_COBROS_ONLINE:price_1TAxaIFi0YpItqgc1f4qYDYd}        # $349/mes
+    reportes-avanzados:  ${STRIPE_PRICE_MODULO_REPORTES_AVANZADOS:price_1TAxamFi0YpItqgchPbzr9iM}   # $249/mes
+    usuarios-extra:      ${STRIPE_PRICE_MODULO_USUARIOS_EXTRA:price_1TAxbEFi0YpItqgcUQ5FNrLM}       # $149/mes
+    multi-sucursal:      ${STRIPE_PRICE_MODULO_MULTI_SUCURSAL:price_1TAxbiFi0YpItqgc3AGk7nMl}       # $399/mes
+    branding-email:      ${STRIPE_PRICE_MODULO_BRANDING_EMAIL:price_1TAxcDFi0YpItqgcAwnn9R1E}       # $99/mes
+    citas-extra:         ${STRIPE_PRICE_MODULO_CITAS_EXTRA:price_1TAxcbFi0YpItqgc6hlUhadH}          # $99/mes (+100 citas)
+    servicios-extra:     ${STRIPE_PRICE_MODULO_SERVICIOS_EXTRA:price_1TAxcyFi0YpItqgc81Or3ct3}      # $79/mes (+8 servicios)
 
 # ============================================================================
 # RESEND - Email
@@ -180,7 +180,7 @@ app:
     secure: ${COOKIE_SECURE:false}
     same-site: ${COOKIE_SAME_SITE:Strict}
   admin:
-    secret-key: ${ADMIN_SECRET_KEY}
+    secret-key: ${ADMIN_SECRET_KEY:qa-admin-secret-2024}
 
 # ============================================================================
 # SWAGGER / SPRINGDOC - Habilitado en QA para facilitar pruebas
