@@ -2,6 +2,8 @@
 
 Sistema completo de gestión de citas para negocios con modelo de suscripción (Starter, Professional, Enterprise).
 
+> Infraestructura migrada a Digital Ocean Droplet.
+
 ## Arquitectura del Sistema
 
 ### Stack Tecnológico
