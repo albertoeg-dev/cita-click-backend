@@ -18,7 +18,7 @@ spring:
   # Schema: ccdiaq (cita-click-qa)
   # ============================================================================
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://db-espejel-studio-dia-prod-do-user-35883971-0.g.db.ondigitalocean.com:25060/db-cita-click-diap?sslmode=require}
+    url: ${DATABASE_URL:jdbc:postgresql://db-espejel-studio-do-user-35883971-0.g.db.ondigitalocean.com:25060/db-cita-click?sslmode=require}
     username: ${DB_USER:MXCCSAAS}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -82,7 +82,7 @@ jwt:
 # ============================================================================
 google:
   client:
-    id: ${GOOGLE_CLIENT_ID:742827122597-o8d36rdpedkb42c8t2m3onif2hun0b4l.apps.googleusercontent.com}
+    id: ${GOOGLE_CLIENT_ID:400989323167-jefebaitebnnfv38aevs9ebrvnc4f5ng.apps.googleusercontent.com}
 
 # ============================================================================
 # STRIPE - Usar SIEMPRE claves TEST en QA (sk_test_... / pk_test_...)
@@ -100,24 +100,25 @@ stripe:
   webhook:
     secret: ${STRIPE_WEBHOOK_SECRET}  # whsec_... → Stripe Dashboard > Webhooks (TEST)
   success:
-    url: ${FRONTEND_URL:http://localhost:5173}/payment/success
+    url: http://localhost:5174/payment/success
   cancel:
-    url: ${FRONTEND_URL:http://localhost:5173}/payment/cancel
+    url: http://localhost:5174/payment/cancel
   # ── Planes base ─────────────────────────────────────────────────────────────
   price:
-    base:     ${STRIPE_PRICE_BASE:price_1T5apaFi0YpItqgcJyUmdFqt}     # price_... Plan Base TEST ($299 MXN/mes)
-    completo: ${STRIPE_PRICE_COMPLETO:price_1T5aqbFi0YpItqgcOq2CJgRK} # price_... Plan Completo TEST ($1,199 MXN/mes)
-  # ── Módulos del marketplace ──────────────────────────────────────────────────
+    base:     ${STRIPE_PRICE_BASE:price_1TMw03HXe9kH0IwKlpswfr0J}     # price_... Plan Base TEST ($299 MXN/mes)
+    completo: ${STRIPE_PRICE_COMPLETO:price_1TMw2YHXe9kH0IwKJnBre9wO} # price_... Plan Completo TEST ($1,199 MXN/mes)
+  # ── Módulos del marketplace (cada uno es un producto en Stripe) ─────────────
+  # Crea primero los productos en Stripe Dashboard TEST → pega los price_... aquí
   modulos:
-    email-recordatorios: ${STRIPE_PRICE_MODULO_EMAIL_RECORDATORIOS:price_1TAxYzFi0YpItqgc70pbUn1z}  # $199/mes
-    sms-whatsapp:        ${STRIPE_PRICE_MODULO_SMS_WHATSAPP:price_1TAxZZFi0YpItqgcUOdmmUYx}         # $349/mes
-    cobros-online:       ${STRIPE_PRICE_MODULO_COBROS_ONLINE:price_1TAxaIFi0YpItqgc1f4qYDYd}        # $349/mes
-    reportes-avanzados:  ${STRIPE_PRICE_MODULO_REPORTES_AVANZADOS:price_1TAxamFi0YpItqgchPbzr9iM}   # $249/mes
-    usuarios-extra:      ${STRIPE_PRICE_MODULO_USUARIOS_EXTRA:price_1TAxbEFi0YpItqgcUQ5FNrLM}       # $149/mes
-    multi-sucursal:      ${STRIPE_PRICE_MODULO_MULTI_SUCURSAL:price_1TAxbiFi0YpItqgc3AGk7nMl}       # $399/mes
-    branding-email:      ${STRIPE_PRICE_MODULO_BRANDING_EMAIL:price_1TAxcDFi0YpItqgcAwnn9R1E}       # $99/mes
-    citas-extra:         ${STRIPE_PRICE_MODULO_CITAS_EXTRA:price_1TAxcbFi0YpItqgc6hlUhadH}          # $99/mes (+100 citas)
-    servicios-extra:     ${STRIPE_PRICE_MODULO_SERVICIOS_EXTRA:price_1TAxcyFi0YpItqgc81Or3ct3}      # $79/mes (+8 servicios)
+    email-recordatorios: ${STRIPE_PRICE_MODULO_EMAIL_RECORDATORIOS:price_1TMwu8HXe9kH0IwKmoJ4Dc14}  # $199/mes
+    sms-whatsapp:        ${STRIPE_PRICE_MODULO_SMS_WHATSAPP:price_1TMwupHXe9kH0IwKRi0NyFTp}         # $349/mes
+    cobros-online:       ${STRIPE_PRICE_MODULO_COBROS_ONLINE:price_1TMwvOHXe9kH0IwKuQKE3KsY}        # $349/mes
+    reportes-avanzados:  ${STRIPE_PRICE_MODULO_REPORTES_AVANZADOS:price_1TMwvyHXe9kH0IwK6chx04az}   # $249/mes
+    usuarios-extra:      ${STRIPE_PRICE_MODULO_USUARIOS_EXTRA:price_1TMwwkHXe9kH0IwKS4vc9tlH}       # $149/mes
+    multi-sucursal:      ${STRIPE_PRICE_MODULO_MULTI_SUCURSAL:price_1TMwxHHXe9kH0IwK01SEzLtp}       # $399/mes
+    branding-email:      ${STRIPE_PRICE_MODULO_BRANDING_EMAIL:price_1TMwzhHXe9kH0IwKG0neoi0f}       # $99/mes
+    citas-extra:         ${STRIPE_PRICE_MODULO_CITAS_EXTRA:pprice_1TMwz8HXe9kH0IwKP7VFiovc}          # $99/mes (+100 citas)
+    servicios-extra:     ${STRIPE_PRICE_MODULO_SERVICIOS_EXTRA:price_1TMwyYHXe9kH0IwKPzVkdHT6}      # $79/mes (+8 servicios)
 
 # ============================================================================
 # RESEND - Email
@@ -126,8 +127,8 @@ resend:
   api:
     key: ${RESEND_API_KEY}
   from:
-    email: ${RESEND_FROM_EMAIL:qa@citaclick.com.mx}
-    name: ${RESEND_FROM_NAME:Cita Click QA}
+    email: ${RESEND_FROM_EMAIL:info@citaclick.com.mx}
+    name: ${RESEND_FROM_NAME:Cita Click Dev}
   templates:
     verificacion-correo:      ${RESEND_TEMPLATE_VERIFICACION:verificacin-correo-electrnico}
     recordatorio-clasico:     ${RESEND_TEMPLATE_RECORDATORIO_CLASICO:recordatorio-clasico}
@@ -169,18 +170,18 @@ rate:
 # Local HTTP:  COOKIE_SECURE=false, COOKIE_SAME_SITE=Strict (Vite proxy)
 # DO QA HTTPS: COOKIE_SECURE=true,  COOKIE_SAME_SITE=None  (cross-origin)
 # ============================================================================
-frontend:
-  url: ${FRONTEND_URL:http://localhost:5173}
-
 app:
+  cookie:
+    secure: false             # HTTP en localhost
+    same-site: Strict         # Funciona porque Vite proxea /api al backend
   frontend:
     url: ${FRONTEND_URL:http://localhost:5173}
     extra-origins: ${FRONTEND_EXTRA_ORIGINS:http://localhost:5174}
-  cookie:
-    secure: ${COOKIE_SECURE:false}
-    same-site: ${COOKIE_SAME_SITE:Strict}
   admin:
-    secret-key: ${ADMIN_SECRET_KEY:qa-admin-secret-2024}
+    secret-key: ${ADMIN_SECRET_KEY:dev-admin-secret-2024}
+
+frontend:
+  url: ${FRONTEND_URL:http://localhost:5174}
 
 # ============================================================================
 # SWAGGER / SPRINGDOC - Habilitado en QA para facilitar pruebas
