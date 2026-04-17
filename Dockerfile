@@ -5,15 +5,13 @@
 # ============================================
 # STAGE 1: BUILD
 # ============================================
-FROM eclipse-temurin:21-jdk-alpine AS build
-
-# Instalar Maven
-RUN apk add --no-cache maven
+# Imagen oficial con Maven 3.9 + Java 21 (Debian — más estable que Alpine para builds)
+FROM maven:3.9-eclipse-temurin-21 AS build
 
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de configuración de Maven
+# Copiar archivos de configuración de Maven primero (aprovecha caché de Docker)
 COPY pom.xml .
 
 # Descargar dependencias (aprovecha caché de Docker)
@@ -22,8 +20,8 @@ RUN mvn dependency:go-offline -B
 # Copiar código fuente
 COPY src ./src
 
-# Compilar la aplicación (saltando tests para build más rápido)
-RUN mvn clean package -DskipTests
+# Compilar la aplicación (saltando compilación y ejecución de tests)
+RUN mvn clean package -Dmaven.test.skip=true
 
 # ============================================
 # STAGE 2: RUNTIME
@@ -47,8 +45,8 @@ COPY --from=build /app/target/citaclick-backend-1.0.0.jar app.jar
 # Instalar curl para el healthcheck
 RUN apk add --no-cache curl
 
-# Cambiar ownership del JAR
-RUN chown spring:spring app.jar
+# Crear directorio de logs y asignar ownership
+RUN mkdir -p /app/logs && chown -R spring:spring /app
 
 # Cambiar a usuario no-root
 USER spring:spring

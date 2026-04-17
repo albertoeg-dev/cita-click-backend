@@ -83,7 +83,7 @@ class ModuloActivacionServiceTest {
                     negocioId, ModuloService.EMAIL_RECORDATORIOS))
                     .thenReturn(Optional.empty());
 
-            moduloActivacionService.activarModulo(negocioId, ModuloService.EMAIL_RECORDATORIOS, "sub_abc123");
+            moduloActivacionService.activarModulo(negocioId, ModuloService.EMAIL_RECORDATORIOS, "sub_abc123", "cs_test_abc123");
 
             ArgumentCaptor<ModuloNegocio> captor = ArgumentCaptor.forClass(ModuloNegocio.class);
             verify(moduloNegocioRepository).save(captor.capture());
@@ -113,7 +113,7 @@ class ModuloActivacionServiceTest {
                     negocioId, ModuloService.EMAIL_RECORDATORIOS))
                     .thenReturn(Optional.of(mnExistente));
 
-            moduloActivacionService.activarModulo(negocioId, ModuloService.EMAIL_RECORDATORIOS, "sub_new123");
+            moduloActivacionService.activarModulo(negocioId, ModuloService.EMAIL_RECORDATORIOS, "sub_new123", "cs_test_new123");
 
             verify(moduloNegocioRepository).save(mnExistente);
             assertThat(mnExistente.getStripeSubscriptionId()).isEqualTo("sub_new123");
@@ -125,7 +125,7 @@ class ModuloActivacionServiceTest {
             when(negocioRepository.findById(negocioId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() ->
-                    moduloActivacionService.activarModulo(negocioId, ModuloService.EMAIL_RECORDATORIOS, "sub_x"))
+                    moduloActivacionService.activarModulo(negocioId, ModuloService.EMAIL_RECORDATORIOS, "sub_x", "cs_test_x"))
                     .isInstanceOf(NotFoundException.class);
 
             verify(moduloNegocioRepository, never()).save(any());
@@ -138,7 +138,7 @@ class ModuloActivacionServiceTest {
             when(moduloRepository.findByClave("modulo_inexistente")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() ->
-                    moduloActivacionService.activarModulo(negocioId, "modulo_inexistente", "sub_x"))
+                    moduloActivacionService.activarModulo(negocioId, "modulo_inexistente", "sub_x", "cs_test_x"))
                     .isInstanceOf(NotFoundException.class);
 
             verify(moduloNegocioRepository, never()).save(any());
@@ -155,7 +155,7 @@ class ModuloActivacionServiceTest {
             when(moduloNegocioRepository.findByNegocioIdAndModuloClaveAndActivoTrue(any(), any()))
                     .thenReturn(Optional.empty());
 
-            moduloActivacionService.activarModulo(negocioId, ModuloService.REPORTES_AVANZADOS, null);
+            moduloActivacionService.activarModulo(negocioId, ModuloService.REPORTES_AVANZADOS, null, null);
 
             ArgumentCaptor<ModuloNegocio> captor = ArgumentCaptor.forClass(ModuloNegocio.class);
             verify(moduloNegocioRepository).save(captor.capture());

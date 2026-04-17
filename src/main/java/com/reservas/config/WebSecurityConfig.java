@@ -129,6 +129,10 @@ public class WebSecurityConfig {
                         authz.requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll();
                     }
 
+                    // Actuator health (para Docker healthcheck y monitoreo)
+                    authz.requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                         .requestMatchers(HttpMethod.GET, "/actuator/health/**").permitAll();
+
                     // Stripe Webhooks (NO debe tener autenticación JWT)
                     authz.requestMatchers(HttpMethod.POST, "/webhooks/stripe").permitAll()
                          // Twilio Webhooks (NO debe tener autenticación JWT)

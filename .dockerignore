@@ -1,10 +1,10 @@
-# Build outputs
+# ============================================================
+# .dockerignore — Backend (Spring Boot)
+# Solo excluye lo que NO necesita el build de Maven
+# ============================================================
+
+# Build output (se genera dentro del contenedor)
 target/
-!target/*.jar
-*.class
-*.jar
-*.war
-*.ear
 
 # IDE
 .idea/
@@ -17,8 +17,8 @@ target/
 .settings/
 .metadata
 
-# Maven
-.mvn/wrapper/maven-wrapper.jar
+# Maven wrapper (no necesario, la imagen ya trae Maven)
+.mvn/
 mvnw
 mvnw.cmd
 
@@ -27,7 +27,7 @@ mvnw.cmd
 .gitignore
 .gitattributes
 
-# Documentation
+# Documentación
 README.md
 docs/
 *.md
@@ -36,12 +36,7 @@ docs/
 *.log
 logs/
 
-# Tests
-src/test/
-*.test.*
-test-results/
-
-# Environment
+# Environment (no se usan en el build de Maven)
 .env
 .env.local
 .env.*.local
@@ -53,12 +48,8 @@ Thumbs.db
 *.swo
 *~
 
-# Docker - No ignorar estos archivos ya que deben estar en el contexto
-# Dockerfile
-# .dockerignore
-# docker-compose*.yml
+# Claude Code
+.claude/
 
-# Node (si hay frontend en el mismo repo)
-node_modules/
-npm-debug.log
-yarn-error.log
+# Docker
+docker-compose*.yml
