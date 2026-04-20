@@ -141,6 +141,11 @@ public class WebSecurityConfig {
                          .requestMatchers(HttpMethod.GET, "/v1/payments/public/**").permitAll()
                          // Admin scheduler: sin JWT, protegido por X-Admin-Key header
                          .requestMatchers(HttpMethod.GET, "/admin/scheduler/**").permitAll()
+                         // URLs públicas de reservas (sin autenticación)
+                         .requestMatchers(HttpMethod.GET, "/public/booking/*/disponibilidad/**").permitAll()
+                         .requestMatchers(HttpMethod.GET, "/public/booking/*/disponibilidad").permitAll()
+                         .requestMatchers(HttpMethod.GET, "/public/booking/*").permitAll()
+                         .requestMatchers(HttpMethod.POST, "/public/booking/*/agendar").permitAll()
                          // Todas las demás rutas requieren autenticación
                          .anyRequest().authenticated();
                 })

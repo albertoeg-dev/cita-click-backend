@@ -20,7 +20,7 @@ spring:
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://db-espejel-studio-do-user-35883971-0.g.db.ondigitalocean.com:25060/db-cita-click?sslmode=require}
     username: ${DB_USER:MXCCSAAS}
-    password: ${DB_PASSWORD}
+    password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: CitaClickQAPool
@@ -73,7 +73,7 @@ logging:
 # JWT
 # ============================================================================
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:eeb53ea35f0d794070c1fd5b1181c79da14e6a963aeb4b92d367900940b9eab3}
   expiration: 604800000
   refresh-expiration: 2592000000
 
@@ -94,11 +94,11 @@ google:
 # ============================================================================
 stripe:
   secret:
-    key: ${STRIPE_SECRET_KEY}     # sk_test_... → Stripe Dashboard (TEST)
+    key: ${STRIPE_SECRET_KEY:}     # sk_test_... → Stripe Dashboard (TEST)
   api:
-    key: ${STRIPE_API_KEY}        # ⚠️ MISMO valor que STRIPE_SECRET_KEY
+    key: ${STRIPE_API_KEY:}        # ⚠️ MISMO valor que STRIPE_SECRET_KEY
   webhook:
-    secret: ${STRIPE_WEBHOOK_SECRET}  # whsec_... → Stripe Dashboard > Webhooks (TEST)
+    secret: ${STRIPE_WEBHOOK_SECRET:whsec_askda}  # whsec_... → Stripe Dashboard > Webhooks (TEST)
   success:
     url: http://localhost:5174/payment/success
   cancel:
@@ -125,7 +125,7 @@ stripe:
 # ============================================================================
 resend:
   api:
-    key: ${RESEND_API_KEY}
+    key: ${RESEND_API_KEY:re_71vodE1R_LJgejcab91AC9HUxA1JYahaf}
   from:
     email: ${RESEND_FROM_EMAIL:info@citaclick.com.mx}
     name: ${RESEND_FROM_NAME:Cita Click Dev}
