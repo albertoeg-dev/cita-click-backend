@@ -6,6 +6,8 @@ import com.reservas.dto.request.ClienteRequest;
 import com.reservas.dto.request.LoginRequest;
 import com.reservas.dto.request.RegisterRequest;
 import com.reservas.dto.request.ServicioRequest;
+import jakarta.servlet.http.Cookie;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +40,7 @@ class ReporteIntegrationTest {
 
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
     private MockMvc mockMvc;
-    private String jwtToken;
+    private Cookie authCookie;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -46,22 +48,23 @@ class ReporteIntegrationTest {
         // 1. Registrar usuario
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setEmail("reportes-test@example.com");
-        registerRequest.setPassword("password123");
+        registerRequest.setPassword("Password123");
         registerRequest.setNombre("Test");
         registerRequest.setApellidoPaterno("Reportes");
         registerRequest.setApellidoMaterno("User");
         registerRequest.setNombreNegocio("Salon Reportes E2E");
         registerRequest.setTipoNegocio("salon");
+        registerRequest.setPlan("completo");
 
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated());
 
-        // 2. Login
+        // 2. Login → JWT en cookie httpOnly
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail("reportes-test@example.com");
-        loginRequest.setPassword("password123");
+        loginRequest.setPassword("Password123");
 
         MvcResult loginResult = mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -69,10 +72,8 @@ class ReporteIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        jwtToken = objectMapper.readTree(loginResult.getResponse().getContentAsString())
-                .get("data")
-                .get("token")
-                .asText();
+        authCookie = loginResult.getResponse().getCookie("access_token");
+        Assertions.assertThat(authCookie).isNotNull();
 
         // 3. Crear datos de prueba (servicios, clientes, citas)
         crearDatosDePrueba();
@@ -89,7 +90,7 @@ class ReporteIntegrationTest {
                 .build();
 
         MvcResult servicioResult = mockMvc.perform(post("/servicios")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(servicioRequest)))
                 .andExpect(status().isCreated())
@@ -108,7 +109,7 @@ class ReporteIntegrationTest {
                 .build();
 
         MvcResult clienteResult = mockMvc.perform(post("/clientes")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(clienteRequest)))
                 .andExpect(status().isCreated())
@@ -128,7 +129,7 @@ class ReporteIntegrationTest {
                 .build();
 
         MvcResult citaResult = mockMvc.perform(post("/citas")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(citaRequest)))
                 .andExpect(status().isCreated())
@@ -139,7 +140,7 @@ class ReporteIntegrationTest {
 
         // Marcar como completada
         mockMvc.perform(patch("/citas/" + citaId + "/estado")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("estado", "COMPLETADA"))
                 .andExpect(status().isOk());
     }
@@ -150,7 +151,7 @@ class ReporteIntegrationTest {
         LocalDate hoy = LocalDate.now();
 
         mockMvc.perform(get("/reportes/diario")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("fecha", hoy.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -167,7 +168,7 @@ class ReporteIntegrationTest {
         LocalDate hoy = LocalDate.now();
 
         mockMvc.perform(get("/reportes/semanal")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("fechaInicio", hoy.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -184,7 +185,7 @@ class ReporteIntegrationTest {
         int anio = hoy.getYear();
 
         mockMvc.perform(get("/reportes/mensual")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("mes", String.valueOf(mes))
                 .param("anio", String.valueOf(anio)))
                 .andExpect(status().isOk())
@@ -201,7 +202,7 @@ class ReporteIntegrationTest {
         LocalDate hoy = LocalDate.now();
 
         MvcResult result = mockMvc.perform(get("/reportes/diario")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("fecha", hoy.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))

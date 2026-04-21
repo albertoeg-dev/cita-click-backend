@@ -6,7 +6,7 @@ import com.reservas.dto.request.ClienteRequest;
 import com.reservas.dto.request.LoginRequest;
 import com.reservas.dto.request.RegisterRequest;
 import com.reservas.dto.request.ServicioRequest;
-import com.reservas.dto.response.LoginResponse;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -40,7 +41,7 @@ class CitaIntegrationTest {
 
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
     private MockMvc mockMvc;
-    private String jwtToken;
+    private Cookie authCookie;
     private String clienteId;
     private String servicioId;
 
@@ -50,7 +51,7 @@ class CitaIntegrationTest {
         // 1. Registrar usuario
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setEmail("test-integration@example.com");
-        registerRequest.setPassword("password123");
+        registerRequest.setPassword("Password123");
         registerRequest.setNombre("Test");
         registerRequest.setApellidoPaterno("Integration");
         registerRequest.setApellidoMaterno("User");
@@ -62,10 +63,10 @@ class CitaIntegrationTest {
                 .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated());
 
-        // 2. Login
+        // 2. Login → JWT en cookie httpOnly
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail("test-integration@example.com");
-        loginRequest.setPassword("password123");
+        loginRequest.setPassword("Password123");
 
         MvcResult loginResult = mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -73,11 +74,8 @@ class CitaIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        String loginResponseJson = loginResult.getResponse().getContentAsString();
-        jwtToken = objectMapper.readTree(loginResponseJson)
-                .get("data")
-                .get("token")
-                .asText();
+        authCookie = loginResult.getResponse().getCookie("access_token");
+        assertThat(authCookie).isNotNull();
 
         // 3. Crear servicio
         ServicioRequest servicioRequest = ServicioRequest.builder()
@@ -89,7 +87,7 @@ class CitaIntegrationTest {
                 .build();
 
         MvcResult servicioResult = mockMvc.perform(post("/servicios")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(servicioRequest)))
                 .andExpect(status().isCreated())
@@ -111,7 +109,7 @@ class CitaIntegrationTest {
                 .build();
 
         MvcResult clienteResult = mockMvc.perform(post("/clientes")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(clienteRequest)))
                 .andExpect(status().isCreated())
@@ -139,7 +137,7 @@ class CitaIntegrationTest {
                 .build();
 
         MvcResult createResult = mockMvc.perform(post("/citas")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(citaRequest)))
                 .andExpect(status().isCreated())
@@ -156,7 +154,7 @@ class CitaIntegrationTest {
 
         // 2. Listar citas
         mockMvc.perform(get("/citas")
-                .header("Authorization", "Bearer " + jwtToken))
+                .cookie(authCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
@@ -164,7 +162,7 @@ class CitaIntegrationTest {
 
         // 3. Obtener cita por ID
         mockMvc.perform(get("/citas/" + citaId)
-                .header("Authorization", "Bearer " + jwtToken))
+                .cookie(authCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(citaId))
@@ -172,7 +170,7 @@ class CitaIntegrationTest {
 
         // 4. Cambiar estado a CONFIRMADA
         mockMvc.perform(patch("/citas/" + citaId + "/estado")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("estado", "CONFIRMADA"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -191,7 +189,7 @@ class CitaIntegrationTest {
                 .build();
 
         mockMvc.perform(put("/citas/" + citaId)
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
@@ -200,13 +198,13 @@ class CitaIntegrationTest {
 
         // 6. Cancelar cita
         mockMvc.perform(delete("/citas/" + citaId)
-                .header("Authorization", "Bearer " + jwtToken))
+                .cookie(authCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
         // 7. Verificar que está cancelada
         mockMvc.perform(get("/citas/" + citaId)
-                .header("Authorization", "Bearer " + jwtToken))
+                .cookie(authCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.estado").value("CANCELADA"));
     }
@@ -216,7 +214,7 @@ class CitaIntegrationTest {
     void testVerificarDisponibilidadHorarios() throws Exception {
         // Obtener horarios disponibles
         mockMvc.perform(get("/citas/disponibilidad")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("servicioId", servicioId)
                 .param("fecha", LocalDateTime.now().plusDays(1).toLocalDate().toString()))
                 .andExpect(status().isOk())
@@ -240,7 +238,7 @@ class CitaIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/citas")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(cita1)))
                 .andExpect(status().isCreated());
@@ -255,7 +253,7 @@ class CitaIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/citas")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(cita2)))
                 .andExpect(status().isBadRequest())
@@ -286,14 +284,14 @@ class CitaIntegrationTest {
                 .build();
 
         MvcResult result1 = mockMvc.perform(post("/citas")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(cita1)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
         mockMvc.perform(post("/citas")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(cita2)))
                 .andExpect(status().isCreated());
@@ -303,13 +301,13 @@ class CitaIntegrationTest {
 
         // Confirmar una cita
         mockMvc.perform(patch("/citas/" + citaId + "/estado")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("estado", "CONFIRMADA"))
                 .andExpect(status().isOk());
 
         // Filtrar por estado CONFIRMADA
         mockMvc.perform(get("/citas")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("estado", "CONFIRMADA"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
@@ -317,7 +315,7 @@ class CitaIntegrationTest {
 
         // Filtrar por fecha
         mockMvc.perform(get("/citas")
-                .header("Authorization", "Bearer " + jwtToken)
+                .cookie(authCookie)
                 .param("fecha", fecha1.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray());
