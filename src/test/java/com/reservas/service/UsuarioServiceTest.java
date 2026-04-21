@@ -120,7 +120,7 @@ class UsuarioServiceTest {
 
         doNothing().when(permisosService).validarPermiso(usuarioOwnerMock, "INVITAR_USUARIOS");
         doNothing().when(permisosService).validarGestionRol(usuarioOwnerMock, invitarRequest.getRol());
-        doNothing().when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.PROFESIONAL);
+        doNothing().when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.BASE);
         doNothing().when(planLimitesService).actualizarUso(negocioId);
 
         // Act
@@ -170,7 +170,7 @@ class UsuarioServiceTest {
         doNothing().when(permisosService).validarPermiso(usuarioOwnerMock, "INVITAR_USUARIOS");
         doNothing().when(permisosService).validarGestionRol(usuarioOwnerMock, invitarRequest.getRol());
         doThrow(new LimiteExcedidoException("Límite de usuarios excedido"))
-                .when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.PROFESIONAL);
+                .when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.BASE);
 
         // Act & Assert
         assertThrows(LimiteExcedidoException.class, () ->
@@ -193,7 +193,7 @@ class UsuarioServiceTest {
 
         doNothing().when(permisosService).validarPermiso(usuarioOwnerMock, "INVITAR_USUARIOS");
         doNothing().when(permisosService).validarGestionRol(usuarioOwnerMock, invitarRequest.getRol());
-        doNothing().when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.PROFESIONAL);
+        doNothing().when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.BASE);
 
         // Act & Assert
         assertThrows(IllegalArgumentException.class, () ->
@@ -498,7 +498,7 @@ class UsuarioServiceTest {
 
         doNothing().when(permisosService).validarPermiso(usuarioOwnerMock, "INVITAR_USUARIOS");
         doNothing().when(permisosService).validarGestionRol(usuarioOwnerMock, usuarioInactivo.getRol());
-        doNothing().when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.PROFESIONAL);
+        doNothing().when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.BASE);
         doNothing().when(planLimitesService).actualizarUso(negocioId);
 
         // Act
@@ -535,7 +535,7 @@ class UsuarioServiceTest {
         doNothing().when(permisosService).validarPermiso(usuarioOwnerMock, "INVITAR_USUARIOS");
         doNothing().when(permisosService).validarGestionRol(usuarioOwnerMock, usuarioInactivo.getRol());
         doThrow(new LimiteExcedidoException("Límite de usuarios excedido"))
-                .when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.PROFESIONAL);
+                .when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.BASE);
 
         // Act & Assert
         assertThrows(LimiteExcedidoException.class, () ->
@@ -560,7 +560,7 @@ class UsuarioServiceTest {
 
         doNothing().when(permisosService).validarPermiso(usuarioOwnerMock, "INVITAR_USUARIOS");
         doNothing().when(permisosService).validarGestionRol(usuarioOwnerMock, invitarRequest.getRol());
-        doNothing().when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.PROFESIONAL);
+        doNothing().when(planLimitesService).validarLimiteUsuarios(negocioId, TipoPlan.BASE);
 
         // Act & Assert
         assertThrows(IllegalArgumentException.class, () ->
