@@ -9,6 +9,7 @@ import com.reservas.entity.Usuario;
 import com.reservas.exception.ResourceNotFoundException;
 import com.reservas.repository.ModuloNegocioRepository;
 import com.reservas.repository.ModuloRepository;
+import com.reservas.repository.NegocioRepository;
 import com.reservas.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,6 +44,9 @@ class ModuloServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private NegocioRepository negocioRepository;
+
     @InjectMocks
     private ModuloService moduloService;
 
@@ -55,10 +59,13 @@ class ModuloServiceTest {
         negocioId = UUID.randomUUID();
         negocio = new Negocio();
         negocio.setId(negocioId);
+        negocio.setPlan("base");
 
         usuario = new Usuario();
         usuario.setEmail("owner@test.com");
         usuario.setNegocio(negocio);
+
+        lenient().when(negocioRepository.findById(negocioId)).thenReturn(Optional.of(negocio));
     }
 
     // ============================================================
@@ -70,14 +77,14 @@ class ModuloServiceTest {
     class InicializarModulos {
 
         @Test
-        @DisplayName("Crea los 7 módulos cuando el catálogo está vacío")
+        @DisplayName("Crea los 9 módulos cuando el catálogo está vacío")
         void debeCrearSieteModulosCuandoCatalogoVacio() {
-            when(moduloRepository.existsByClave(anyString())).thenReturn(false);
+            when(moduloRepository.findByClave(anyString())).thenReturn(Optional.empty());
 
             moduloService.inicializarModulos();
 
             ArgumentCaptor<Modulo> captor = ArgumentCaptor.forClass(Modulo.class);
-            verify(moduloRepository, times(7)).save(captor.capture());
+            verify(moduloRepository, times(9)).save(captor.capture());
 
             List<Modulo> modulosCreados = captor.getAllValues();
             List<String> claves = modulosCreados.stream().map(Modulo::getClave).toList();
@@ -89,14 +96,18 @@ class ModuloServiceTest {
                     ModuloService.REPORTES_AVANZADOS,
                     ModuloService.USUARIOS_EXTRA,
                     ModuloService.MULTI_SUCURSAL,
-                    ModuloService.BRANDING_EMAIL
+                    ModuloService.BRANDING_EMAIL,
+                    ModuloService.CITAS_EXTRA,
+                    ModuloService.SERVICIOS_EXTRA
             );
         }
 
         @Test
         @DisplayName("No crea módulos que ya existen (idempotente)")
         void noDebeCrearModulosExistentes() {
-            when(moduloRepository.existsByClave(anyString())).thenReturn(true);
+            Modulo existing = new Modulo();
+            existing.setStripePriceId(null);
+            when(moduloRepository.findByClave(anyString())).thenReturn(Optional.of(existing));
 
             moduloService.inicializarModulos();
 
@@ -106,26 +117,27 @@ class ModuloServiceTest {
         @Test
         @DisplayName("Crea solo los módulos faltantes")
         void debeCrearSoloModulosFaltantes() {
-            // El stub genérico primero; los específicos al final (Mockito: último stub gana)
-            when(moduloRepository.existsByClave(anyString())).thenReturn(false);
-            when(moduloRepository.existsByClave(ModuloService.EMAIL_RECORDATORIOS)).thenReturn(true);
-            when(moduloRepository.existsByClave(ModuloService.SMS_WHATSAPP)).thenReturn(true);
+            Modulo existing = new Modulo();
+            existing.setStripePriceId(null);
+            when(moduloRepository.findByClave(anyString())).thenReturn(Optional.empty());
+            when(moduloRepository.findByClave(ModuloService.EMAIL_RECORDATORIOS)).thenReturn(Optional.of(existing));
+            when(moduloRepository.findByClave(ModuloService.SMS_WHATSAPP)).thenReturn(Optional.of(existing));
 
             moduloService.inicializarModulos();
 
-            // Solo se guardan los 5 restantes
-            verify(moduloRepository, times(5)).save(any(Modulo.class));
+            // Solo se guardan los 7 restantes (9 total - 2 ya existentes)
+            verify(moduloRepository, times(7)).save(any(Modulo.class));
         }
 
         @Test
         @DisplayName("Los precios del catálogo son correctos")
         void losPrecionDebenSerCorrectos() {
-            when(moduloRepository.existsByClave(anyString())).thenReturn(false);
+            when(moduloRepository.findByClave(anyString())).thenReturn(Optional.empty());
 
             moduloService.inicializarModulos();
 
             ArgumentCaptor<Modulo> captor = ArgumentCaptor.forClass(Modulo.class);
-            verify(moduloRepository, times(7)).save(captor.capture());
+            verify(moduloRepository, times(9)).save(captor.capture());
 
             List<Modulo> modulos = captor.getAllValues();
 
