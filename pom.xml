@@ -113,11 +113,7 @@
 			<version>8.7.0</version>
 		</dependency>
 
-		<!-- Redis para Rate Limiting (opcional) -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-redis</artifactId>
-		</dependency>
+
 
 		<!-- iText para PDF -->
 		<dependency>
