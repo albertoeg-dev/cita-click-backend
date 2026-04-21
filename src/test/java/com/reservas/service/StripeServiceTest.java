@@ -65,9 +65,8 @@ class StripeServiceTest {
         ReflectionTestUtils.setField(stripeService, "stripeApiKey", "sk_test_123456789");
         ReflectionTestUtils.setField(stripeService, "successUrl", "https://test.com/success");
         ReflectionTestUtils.setField(stripeService, "cancelUrl", "https://test.com/cancel");
-        ReflectionTestUtils.setField(stripeService, "priceIdBasico", "price_basico_test");
-        ReflectionTestUtils.setField(stripeService, "priceIdProfesional", "price_profesional_test");
-        ReflectionTestUtils.setField(stripeService, "priceIdPremium", "price_premium_test");
+        ReflectionTestUtils.setField(stripeService, "priceIdBase", "price_base_test");
+        ReflectionTestUtils.setField(stripeService, "priceIdCompleto", "price_completo_test");
 
         // Configurar datos de prueba
         negocioTest = new Negocio();
@@ -123,9 +122,9 @@ class StripeServiceTest {
     }
 
     @Test
-    void crearCheckoutSession_ConPlanProfesional_DeberiaUsarPrecioCorrecto() throws StripeException {
-        // Given
-        checkoutRequest.setPlan("profesional");
+    void crearCheckoutSession_ConPlanCompleto_DeberiaUsarPrecioCorrecto() throws StripeException {
+        // Given - plan "completo" reemplaza a "profesional"/"premium" ($1,199 MXN)
+        checkoutRequest.setPlan("completo");
         String email = "usuario@test.com";
         String customerId = "cus_test123";
 
@@ -138,8 +137,8 @@ class StripeServiceTest {
 
         when(pagoRepository.save(any(Pago.class))).thenAnswer(invocation -> {
             Pago pago = invocation.getArgument(0);
-            assertThat(pago.getMonto()).isEqualByComparingTo(new BigDecimal("699"));
-            assertThat(pago.getPlan()).isEqualTo("profesional");
+            assertThat(pago.getMonto()).isEqualByComparingTo(new BigDecimal("1199"));
+            assertThat(pago.getPlan()).isEqualTo("completo");
             return pago;
         });
 
@@ -151,15 +150,15 @@ class StripeServiceTest {
 
             // Then
             assertThat(response).isNotNull();
-            assertThat(response.getMonto()).isEqualTo("699");
+            assertThat(response.getMonto()).isEqualTo("1199");
             verify(pagoRepository).save(any(Pago.class));
         }
     }
 
     @Test
-    void crearCheckoutSession_ConPlanPremium_DeberiaUsarPrecioCorrecto() throws StripeException {
-        // Given
-        checkoutRequest.setPlan("premium");
+    void crearCheckoutSession_ConPlanBase_DeberiaUsarPrecioCorrecto() throws StripeException {
+        // Given - plan "base" ($299 MXN)
+        checkoutRequest.setPlan("base");
         String email = "usuario@test.com";
         String customerId = "cus_test123";
 
@@ -172,8 +171,8 @@ class StripeServiceTest {
 
         when(pagoRepository.save(any(Pago.class))).thenAnswer(invocation -> {
             Pago pago = invocation.getArgument(0);
-            assertThat(pago.getMonto()).isEqualByComparingTo(new BigDecimal("1299"));
-            assertThat(pago.getPlan()).isEqualTo("premium");
+            assertThat(pago.getMonto()).isEqualByComparingTo(new BigDecimal("299"));
+            assertThat(pago.getPlan()).isEqualTo("base");
             return pago;
         });
 
@@ -185,7 +184,7 @@ class StripeServiceTest {
 
             // Then
             assertThat(response).isNotNull();
-            assertThat(response.getMonto()).isEqualTo("1299");
+            assertThat(response.getMonto()).isEqualTo("299");
         }
     }
 

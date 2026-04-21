@@ -48,6 +48,9 @@ class PlanLimitesServiceTest {
     @Mock
     private ServicioRepository servicioRepository;
 
+    @Mock
+    private ModuloNegocioRepository moduloNegocioRepository;
+
     @InjectMocks
     private PlanLimitesService planLimitesService;
 
@@ -132,21 +135,20 @@ class PlanLimitesServiceTest {
 
     @Test
     void inicializarLimites_DeberiaCrearPlanBasicoSiNoExiste() {
-        // Given
-        when(planLimitesRepository.existsByTipoPlan(TipoPlan.BASICO)).thenReturn(false);
-        when(planLimitesRepository.existsByTipoPlan(TipoPlan.PROFESIONAL)).thenReturn(true);
-        when(planLimitesRepository.existsByTipoPlan(TipoPlan.PREMIUM)).thenReturn(true);
+        // Given - el servicio ahora inicializa BASE y COMPLETO
+        when(planLimitesRepository.existsByTipoPlan(TipoPlan.BASE)).thenReturn(false);
+        when(planLimitesRepository.existsByTipoPlan(TipoPlan.COMPLETO)).thenReturn(true);
         when(planLimitesRepository.save(any(PlanLimites.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         planLimitesService.inicializarLimites();
 
-        // Then
+        // Then - verifica que se creó plan BASE con los valores correctos
         verify(planLimitesRepository).save(argThat(plan ->
-                plan.getTipoPlan() == TipoPlan.BASICO &&
+                plan.getTipoPlan() == TipoPlan.BASE &&
                         plan.getMaxUsuarios() == 1 &&
-                        plan.getMaxClientes() == 50 &&
-                        plan.getMaxCitasMes() == 100
+                        plan.getMaxClientes() == -1 &&  // ilimitado en plan BASE
+                        plan.getMaxCitasMes() == 200    // 200 citas/mes en plan BASE
         ));
     }
 
@@ -453,7 +455,7 @@ class PlanLimitesServiceTest {
         // Given
         String email = "usuario@test.com";
         when(usuarioRepository.findByEmailWithNegocio(email)).thenReturn(Optional.of(usuarioTest));
-        when(planLimitesRepository.findByTipoPlan(TipoPlan.BASICO)).thenReturn(Optional.of(limitesBasico));
+        when(planLimitesRepository.findByTipoPlan(TipoPlan.BASE)).thenReturn(Optional.of(limitesBasico));
 
         // When
         PlanLimitesDTO dto = planLimitesService.obtenerLimitesPorEmail(email);
@@ -489,7 +491,7 @@ class PlanLimitesServiceTest {
         usoNegocio.setTotalServicios(5);
 
         when(usuarioRepository.findByEmailWithNegocio(email)).thenReturn(Optional.of(usuarioTest));
-        when(planLimitesRepository.findByTipoPlan(TipoPlan.BASICO)).thenReturn(Optional.of(limitesBasico));
+        when(planLimitesRepository.findByTipoPlan(TipoPlan.BASE)).thenReturn(Optional.of(limitesBasico));
         when(usoNegocioRepository.findByNegocioIdAndPeriodo(eq(negocioId), anyString()))
                 .thenReturn(Optional.of(usoNegocio));
         when(usuarioRepository.countActiveUsuariosByNegocioId(negocioId)).thenReturn(0L);
@@ -516,7 +518,7 @@ class PlanLimitesServiceTest {
         // Given
         String email = "usuario@test.com";
         when(usuarioRepository.findByEmailWithNegocio(email)).thenReturn(Optional.of(usuarioTest));
-        when(planLimitesRepository.findByTipoPlan(TipoPlan.BASICO)).thenReturn(Optional.of(limitesBasico));
+        when(planLimitesRepository.findByTipoPlan(TipoPlan.BASE)).thenReturn(Optional.of(limitesBasico));
 
         // When
         boolean habilitada = planLimitesService.validarFuncionalidadPorEmail(email, "email");
@@ -531,7 +533,7 @@ class PlanLimitesServiceTest {
         String email = "usuario@test.com";
         negocioTest.setPlan("premium");
         when(usuarioRepository.findByEmailWithNegocio(email)).thenReturn(Optional.of(usuarioTest));
-        when(planLimitesRepository.findByTipoPlan(TipoPlan.PREMIUM)).thenReturn(Optional.of(limitesPremium));
+        when(planLimitesRepository.findByTipoPlan(TipoPlan.COMPLETO)).thenReturn(Optional.of(limitesPremium));
 
         // When
         boolean habilitada = planLimitesService.validarFuncionalidadPorEmail(email, "reportes_avanzados");

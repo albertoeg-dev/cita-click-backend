@@ -2,7 +2,7 @@ package com.reservas.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.reservas.entity.TipoRecurrencia;
-import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +27,7 @@ public class CitaRequest {
     private String servicioId;
 
     @NotNull(message = "La fecha es requerida")
-    @Future(message = "La fecha debe ser futura")
+    @FutureOrPresent(message = "La fecha no puede ser pasada")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate fecha;
 
@@ -55,10 +55,7 @@ public class CitaRequest {
 
     private String diasSemana; // Para SEMANAL: "LUN,MIE,VIE"
 
-    /**
-     * Helper method para combinar fecha y hora en LocalDateTime
-     * @return LocalDateTime combinando fecha y hora
-     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public LocalDateTime getFechaHora() {
         if (fecha == null || hora == null) {
             return null;

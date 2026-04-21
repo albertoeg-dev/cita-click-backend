@@ -59,12 +59,12 @@ class ExcelServiceTest {
             Sheet sheet = workbook.getSheetAt(0);
             assertEquals("Reporte", sheet.getSheetName());
 
-            // Verificar título
-            Row titleRow = sheet.getRow(0);
-            assertNotNull(titleRow);
-            assertEquals("REPORTE DE NEGOCIO", titleRow.getCell(0).getStringCellValue());
+            // Verificar brand label en row 0
+            Row brandRow = sheet.getRow(0);
+            assertNotNull(brandRow);
+            assertEquals("CITA CLICK", brandRow.getCell(0).getStringCellValue());
 
-            // Verificar nombre del negocio
+            // Verificar nombre del negocio en row 1
             Row businessRow = sheet.getRow(1);
             assertNotNull(businessRow);
             assertEquals(nombreNegocio, businessRow.getCell(0).getStringCellValue());

@@ -8,6 +8,7 @@ import com.reservas.exception.NotFoundException;
 import com.reservas.repository.ModuloNegocioRepository;
 import com.reservas.repository.ModuloRepository;
 import com.reservas.repository.NegocioRepository;
+import com.reservas.repository.PagoRepository;
 import com.reservas.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +37,7 @@ class ModuloActivacionServiceTest {
     @Mock private ModuloNegocioRepository moduloNegocioRepository;
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private NegocioRepository negocioRepository;
+    @Mock private PagoRepository pagoRepository;
 
     @InjectMocks
     private ModuloActivacionService moduloActivacionService;

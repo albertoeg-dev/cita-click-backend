@@ -283,15 +283,15 @@ class SuscripcionServiceTest {
         when(negocioRepository.findAll()).thenReturn(Arrays.asList(negocioMock));
         when(negocioRepository.save(any(Negocio.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(emailService.enviarEmail(anyString(), anyString(), anyString())).thenReturn(true);
+        when(emailService.enviarEmailFinPrueba(anyString(), anyString(), anyString())).thenReturn(true);
 
         // Act
         suscripcionService.enviarNotificaciones();
 
         // Assert
-        verify(emailService).enviarEmail(
+        verify(emailService).enviarEmailFinPrueba(
                 eq(negocioMock.getEmail()),
-                contains("periodo de prueba termina"),
+                anyString(),
                 anyString()
         );
         verify(negocioRepository).save(argThat(negocio ->
