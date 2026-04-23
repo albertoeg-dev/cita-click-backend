@@ -20,4 +20,8 @@ public class CheckoutResponse {
     private String plan;
     private String monto;
     private String moneda;
+
+    // Info de prorrateo para módulos (cuando se alinea al ciclo del plan base)
+    private Long proximaRenovacionTimestamp; // epoch seconds del siguiente cobro del plan base
+    private Integer diasRestantesCiclo;      // días que quedan hasta la renovación
 }
