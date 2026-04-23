@@ -27,7 +27,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -151,6 +153,44 @@ public class ModuloActivacionService {
                     .build();
         }
 
+        // ── Alinear ciclo de facturación con el plan base ────────────────────────
+        // Si el negocio tiene una suscripción de plan activa en Stripe, usamos su
+        // current_period_end como billing_cycle_anchor para que el módulo y el plan
+        // se cobren siempre el mismo día. Stripe prorratea automáticamente el primer cobro.
+        Long billingCycleAnchor = null;
+        Integer diasRestantesCiclo = null;
+
+        if (negocio.getStripeSubscriptionId() != null) {
+            try {
+                Subscription planSub = Subscription.retrieve(negocio.getStripeSubscriptionId());
+                if (planSub.getCurrentPeriodEnd() != null) {
+                    billingCycleAnchor = planSub.getCurrentPeriodEnd();
+                    long diasLong = ChronoUnit.DAYS.between(
+                            Instant.now(),
+                            Instant.ofEpochSecond(billingCycleAnchor)
+                    );
+                    diasRestantesCiclo = (int) Math.max(1, diasLong);
+                    log.info("[ModuloActivacion] Alineando ciclo módulo '{}' al plan base — renovación en {} días (epoch: {})",
+                            clave, diasRestantesCiclo, billingCycleAnchor);
+                }
+            } catch (StripeException e) {
+                log.warn("[ModuloActivacion] No se pudo obtener suscripción del plan, usando trial de 7 días: {}", e.getMessage());
+            }
+        }
+
+        SessionCreateParams.SubscriptionData subscriptionData;
+        if (billingCycleAnchor != null) {
+            subscriptionData = SessionCreateParams.SubscriptionData.builder()
+                    .setBillingCycleAnchor(billingCycleAnchor)
+                    .setProrationBehavior(SessionCreateParams.SubscriptionData.ProrationBehavior.CREATE_PRORATIONS)
+                    .build();
+        } else {
+            // Sin plan base activo → trial de 7 días como fallback
+            subscriptionData = SessionCreateParams.SubscriptionData.builder()
+                    .setTrialPeriodDays(7L)
+                    .build();
+        }
+
         try {
             SessionCreateParams params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
@@ -159,12 +199,7 @@ public class ModuloActivacionService {
                     .setCancelUrl(cancelUrl)
                     .putAllMetadata(metadata)
                     .addLineItem(lineItem)
-                    // 7 días de prueba gratuita antes del primer cobro
-                    .setSubscriptionData(
-                            SessionCreateParams.SubscriptionData.builder()
-                                    .setTrialPeriodDays(7L)
-                                    .build()
-                    )
+                    .setSubscriptionData(subscriptionData)
                     .setAutomaticTax(
                             SessionCreateParams.AutomaticTax.builder()
                                     .setEnabled(false)
@@ -188,8 +223,11 @@ public class ModuloActivacionService {
                     .moneda("MXN")
                     .estado("pending")
                     .emailCliente(emailUsuario)
-                    .descripcion("Módulo: " + modulo.getNombre()
-                            + " — 7 días gratis, luego $" + modulo.getPrecioMensual().toPlainString() + " MXN/mes")
+                    .descripcion(billingCycleAnchor != null
+                            ? "Módulo: " + modulo.getNombre() + " — Prorrateo " + diasRestantesCiclo
+                              + " días, luego $" + modulo.getPrecioMensual().toPlainString() + " MXN/mes"
+                            : "Módulo: " + modulo.getNombre()
+                              + " — 7 días gratis, luego $" + modulo.getPrecioMensual().toPlainString() + " MXN/mes")
                     .build();
             pagoRepository.save(pago);
             log.info("[ModuloActivacion] Pago pendiente registrado para módulo '{}'", clave);
@@ -200,6 +238,8 @@ public class ModuloActivacionService {
                     .plan(clave)
                     .monto(modulo.getPrecioMensual().toString())
                     .moneda("MXN")
+                    .proximaRenovacionTimestamp(billingCycleAnchor)
+                    .diasRestantesCiclo(diasRestantesCiclo)
                     .build();
 
         } catch (StripeException e) {
