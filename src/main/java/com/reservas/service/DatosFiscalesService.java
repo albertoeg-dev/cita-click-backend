@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,8 +32,14 @@ public class DatosFiscalesService {
     @Value("${stripe.api.key}")
     private String stripeSecretKey;
 
+    private static final List<String> ADMIN_EMAILS = List.of(
+            "alberto@espejelstudio.dev",
+            "albertoraul.espejel@gmail.com"
+    );
+
     private final UsuarioRepository usuarioRepository;
     private final NegocioRepository negocioRepository;
+    private final EmailService emailService;
 
     @PostConstruct
     private void init() {
@@ -71,6 +78,8 @@ public class DatosFiscalesService {
 
             log.info("[DatosFiscales] Metadata actualizada en Stripe Customer {} para negocio {}",
                     negocio.getStripeCustomerId(), negocio.getNombre());
+
+            notificarSolicitudFactura(negocio, emailUsuario, request);
 
             return toResponse(request, negocio.getStripeCustomerId());
 
@@ -118,6 +127,108 @@ public class DatosFiscalesService {
             log.error("[DatosFiscales] Error al obtener Customer de Stripe: {}", e.getMessage());
             throw new RuntimeException("Error al obtener datos fiscales: " + e.getMessage(), e);
         }
+    }
+
+    // ─── Notificación interna ────────────────────────────────────────────────────
+
+    private void notificarSolicitudFactura(Negocio negocio, String emailUsuario, DatosFiscalesRequest req) {
+        String asunto = "Solicitud de factura — " + negocio.getNombre();
+
+        String domicilio = construirDomicilio(req);
+
+        String cuerpo = """
+                <h2 style="color:#4F46E5;margin-bottom:16px;">Nueva solicitud de factura</h2>
+                <p>Un cliente ha registrado sus datos fiscales en <strong>Cita Click</strong> y requiere factura.</p>
+
+                <table style="border-collapse:collapse;width:100%;margin-top:16px;font-size:14px;">
+                  <tr style="background:#F9FAFB;">
+                    <td style="padding:8px 12px;font-weight:600;width:180px;">Negocio</td>
+                    <td style="padding:8px 12px;">%s</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 12px;font-weight:600;">Email de cuenta</td>
+                    <td style="padding:8px 12px;">%s</td>
+                  </tr>
+                  <tr style="background:#F9FAFB;">
+                    <td style="padding:8px 12px;font-weight:600;">Stripe Customer</td>
+                    <td style="padding:8px 12px;font-family:monospace;">%s</td>
+                  </tr>
+                  <tr><td colspan="2" style="padding:12px;background:#EEF2FF;font-weight:700;color:#4F46E5;">Datos fiscales</td></tr>
+                  <tr style="background:#F9FAFB;">
+                    <td style="padding:8px 12px;font-weight:600;">Tipo persona</td>
+                    <td style="padding:8px 12px;">%s</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 12px;font-weight:600;">RFC</td>
+                    <td style="padding:8px 12px;font-family:monospace;">%s</td>
+                  </tr>
+                  <tr style="background:#F9FAFB;">
+                    <td style="padding:8px 12px;font-weight:600;">Razón Social</td>
+                    <td style="padding:8px 12px;">%s</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 12px;font-weight:600;">Régimen Fiscal</td>
+                    <td style="padding:8px 12px;">%s — %s</td>
+                  </tr>
+                  <tr style="background:#F9FAFB;">
+                    <td style="padding:8px 12px;font-weight:600;">CP Fiscal</td>
+                    <td style="padding:8px 12px;">%s</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 12px;font-weight:600;">Uso CFDI</td>
+                    <td style="padding:8px 12px;">%s — %s</td>
+                  </tr>
+                  <tr style="background:#F9FAFB;">
+                    <td style="padding:8px 12px;font-weight:600;">Email facturación</td>
+                    <td style="padding:8px 12px;">%s</td>
+                  </tr>
+                  %s
+                </table>
+
+                <p style="margin-top:20px;color:#6B7280;font-size:13px;">
+                  Puedes consultar el Customer completo en el
+                  <a href="https://dashboard.stripe.com/customers/%s" style="color:#4F46E5;">Dashboard de Stripe</a>.
+                </p>
+                """.formatted(
+                negocio.getNombre(),
+                emailUsuario,
+                negocio.getStripeCustomerId(),
+                "FISICA".equals(req.getTipoPersona()) ? "Persona Física" : "Persona Moral",
+                req.getRfc().toUpperCase(),
+                req.getRazonSocial(),
+                req.getRegimenFiscalClave(), nvl(req.getRegimenFiscalDescripcion()),
+                req.getCodigoPostalFiscal(),
+                req.getUsoCfdiClave(), nvl(req.getUsoCfdiDescripcion()),
+                req.getEmailFacturacion(),
+                domicilio,
+                negocio.getStripeCustomerId()
+        );
+
+        for (String adminEmail : ADMIN_EMAILS) {
+            boolean enviado = emailService.enviarEmail(adminEmail, asunto, cuerpo);
+            if (enviado) {
+                log.info("[DatosFiscales] Notificación enviada a {}", adminEmail);
+            } else {
+                log.warn("[DatosFiscales] No se pudo enviar notificación a {}", adminEmail);
+            }
+        }
+    }
+
+    private String construirDomicilio(DatosFiscalesRequest req) {
+        if (req.getDomicilioCalle() == null || req.getDomicilioCalle().isBlank()) {
+            return "";
+        }
+        return """
+                <tr>
+                  <td style="padding:8px 12px;font-weight:600;">Domicilio fiscal</td>
+                  <td style="padding:8px 12px;">%s, %s, %s, %s</td>
+                </tr>
+                """.formatted(
+                nvl(req.getDomicilioCalle()),
+                nvl(req.getDomicilioColonia()),
+                nvl(req.getDomicilioMunicipio()),
+                nvl(req.getDomicilioEstado())
+        );
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
