@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class CheckoutRequest {
 
     @NotBlank(message = "El plan es requerido")
-    @Pattern(regexp = "basico|profesional|premium", message = "Plan inválido. Debe ser: basico, profesional o premium")
+    @Pattern(regexp = "base|completo|basico|profesional|premium|bundle", message = "Plan inválido. Debe ser: base, completo, basico, profesional o premium")
     private String plan;
 
     // Opcional: Si viene de una landing page específica
